@@ -1,0 +1,2555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Website Automation Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Styles for spinner and service card status */
+    .spinner {
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #3498db;
+      border-radius: 50%;
+      width: 12px;
+      height: 12px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-left: 5px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error-icon {
+      color: red;
+      margin-left: 5px;
+    }
+
+    .service-card.checking {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .service-card.error {
+      border: 2px solid red;
+    }
+
+    .service-card.success {
+      border: 2px solid green;
+    }
+
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc; /* Very light gray for a softer background */
+    }
+    .card {
+      transition: all 0.3s ease;
+      border-radius: 0.75rem; /* Slightly more rounded corners */
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); /* Lighter, more modern shadow */
+      border: 1px solid #f1f5f9; /* Even more subtle border */
+    }
+    .card:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* More pronounced hover shadow */
+      transform: translateY(-2px); /* Slight lift on hover */
+    }
+    .status-badge {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .status-up {
+      background-color: #22c55e; /* Vibrant green */
+    }
+    .status-down {
+      background-color: #ef4444; /* Vibrant red */
+    }
+    .status-unknown {
+      background-color: #94a3b8; /* Medium gray */
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .env-tab {
+      transition: all 0.2s ease-in-out;
+    }
+    .env-tab:hover {
+      background-color: #e0e7ff; /* Lighter indigo on hover */
+      color: #4f46e5;
+    }
+    .env-tab.active {
+      background-color: #4f46e5; /* Primary indigo for active tab */
+      color: white;
+      box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3); /* Subtle shadow for active tab */
+    }
+    
+    /* Modal animations and styles */
+    .modal-overlay {
+      background-color: rgba(15, 23, 42, 0.6); /* Darker, slightly blue overlay */
+      backdrop-filter: blur(8px); /* Stronger blur */
+      transition: all 0.3s ease;
+    }
+    .modal-content {
+      transform: scale(0.95);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy transition */
+    }
+    .modal-content.scale-100 {
+      transform: scale(1);
+      opacity: 1;
+    }
+    
+    /* Form input focus styles */
+    .form-input:focus {
+      border-color: #6366f1; /* Brighter indigo on focus */
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); /* Softer focus ring */
+      outline: none; /* Remove default outline */
+    }
+    
+    /* Button hover effects */
+    .btn-primary {
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary:after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.4);
+      opacity: 0;
+      border-radius: 100%;
+      transform: scale(1, 1) translate(-50%);
+      transform-origin: 50% 50%;
+    }
+    .btn-primary:hover:after {
+      animation: ripple 1s ease-out;
+    }
+    @keyframes ripple {
+      0% {
+        transform: scale(0, 0);
+        opacity: 0.4;
+      }
+      100% {
+        transform: scale(20, 20);
+        opacity: 0;
+      }
+    }
+    /* Specific overrides for button colors */
+    .bg-indigo-600 { background-color: #4f46e5; } /* Primary indigo */
+    .hover\:bg-indigo-700:hover { background-color: #4338ca; }
+    .focus\:ring-indigo-500:focus { --tw-ring-color: #6366f1; }
+
+    .bg-purple-600 { background-color: #9333ea; } /* Primary purple */
+    .hover\:bg-purple-700:hover { background-color: #7e22ce; }
+    .focus\:ring-purple-500:focus { --tw-ring-color: #a855f7; }
+
+    .bg-green-600 { background-color: #16a34a; } /* Primary green */
+    .hover\:bg-green-700:hover { background-color: #15803d; }
+    .focus\:ring-green-500:focus { --tw-ring-color: #22c55e; }
+
+    .bg-gray-800 { background-color: #1f2937; } /* Dark gray for check buttons */
+    .hover\:bg-gray-900:hover { background-color: #111827; }
+    .focus\:ring-gray-500:focus { --tw-ring-color: #6b7280; }
+
+    .bg-blue-500 { background-color: #3b82f6; } /* Blue for edit button */
+    .hover\:bg-blue-600:hover { background-color: #2563eb; }
+    .focus\:ring-blue-500:focus { --tw-ring-color: #60a5fa; }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow-lg sticky top-0 z-10"> <!-- More pronounced shadow for header -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-2 rounded-lg shadow-xl"> <!-- Updated gradient for header icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 012-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 002 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-xl font-semibold text-gray-900">Website Automation</h1>
+              <p class="text-sm text-gray-500">Monitor your services across environments</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <div class="bg-gray-100 rounded-lg p-1 flex">
+              <button id="beta-env" class="env-tab px-4 py-2 rounded-md text-sm font-medium active">BETA</button>
+              <button id="uat-env" class="env-tab px-4 py-2 rounded-md text-sm font-medium">UAT</button>
+              <button id="live-env" class="env-tab px-4 py-2 rounded-md text-sm font-medium">LIVE</button>
+            </div>
+            <button id="notification-settings-btn" class="p-2 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="card bg-white p-6">
+            <h3 class="text-sm font-medium text-gray-500 mb-2">Total Services</h3>
+            <div class="flex justify-between items-end">
+              <span id="total-services" class="text-3xl font-bold">0</span>
+              <div>
+                <span class="text-sm text-gray-600">
+                  <span class="status-badge status-up"></span><span id="up-services">0</span> Up
+                </span>
+                <span class="text-sm text-gray-600 ml-2">
+                  <span class="status-badge status-down"></span><span id="down-services">0</span> Down
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="card bg-white p-6">
+            <h3 class="text-sm font-medium text-gray-500 mb-2">Average Response Time</h3>
+            <div class="flex justify-between items-end">
+              <span id="avg-response-time" class="text-3xl font-bold">0</span>
+              <span class="text-sm text-gray-600">milliseconds</span>
+            </div>
+          </div>
+          <div class="card bg-white p-6">
+            <h3 class="text-sm font-medium text-gray-500 mb-2">Current Environment</h3>
+            <div class="flex justify-between items-end">
+              <span id="current-env" class="text-3xl font-bold capitalize">Beta</span>
+              <span id="domain-count" class="text-sm text-gray-600">0 domains</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Domain Selection -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            <div class="w-full md:w-2/3">
+              <label for="domain-select" class="block text-sm font-medium text-gray-700 mb-1">Domain</label>
+              <div class="flex space-x-2">
+                <select id="domain-select" class="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2">
+                  <option value="" disabled selected>Select a domain</option>
+                </select>
+                <div class="flex space-x-2">
+                  <button id="add-domain-btn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add
+                  </button>
+                  <button id="edit-domain-btn" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    Edit
+                  </button>
+                  <button id="delete-domain-btn" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md shadow-sm text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
+                  </button>
+                </div>
+              </div>
+              <p class="mt-1 text-xs text-gray-500">Each domain stores its own Bearer token for authentication</p>
+            </div>
+            <div class="flex space-x-2">
+              <button id="add-service-btn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Service
+              </button>
+              <button id="check-all-btn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Check All
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notification Settings Placeholder -->
+        <div id="notification-settings-placeholder" class="hidden"></div>
+
+        <!-- Services Grid -->
+        <div id="services-container" class="mb-8">
+          <div id="services-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+          <div id="empty-state" class="text-center py-16 bg-white rounded-lg shadow-sm hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900">No services yet</h3>
+            <p class="mt-1 text-sm text-gray-500">Add a service to start monitoring endpoints</p>
+            <button id="empty-add-service-btn" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              Add Your First Service
+            </button>
+          </div>
+        </div>
+
+        <!-- API Suites Section -->
+        <div id="api-suites-container" class="mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-semibold text-gray-900">API Suites</h2>
+            <div class="flex space-x-2">
+              <button id="add-api-suite-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add API Suite
+              </button>
+              <button id="check-all-api-suites-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Check All Suites
+              </button>
+            </div>
+          </div>
+          <div id="api-suites-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+          <div id="empty-api-suites-state" class="text-center py-16 bg-white rounded-lg shadow-sm hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900">No API Suites yet</h3>
+            <p class="mt-1 text-sm text-gray-500">Add an API suite to group and monitor multiple endpoints</p>
+            <button id="empty-add-api-suite-btn" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+              Add Your First API Suite
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Main Content -->
+    <div class="py-8 bg-gray-50">
+      <!-- Footer -->
+      <footer class="bg-white border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <p class="text-center text-sm text-gray-500">Website Automation Dashboard | Running on localhost</p>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Add/Edit Domain Modal -->  
+  <div id="domain-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center space-x-2">
+          <div class="bg-indigo-100 p-2 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            </svg>
+          </div>
+          <h3 id="domain-modal-title" class="text-lg font-semibold text-gray-900">Add Domain</h3>
+        </div>
+        <button id="close-domain-modal" class="text-gray-400 hover:text-gray-500 transition-colors">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <form id="domain-form" class="space-y-5">
+        <div class="space-y-5">
+          <div>
+            <label for="domain-name" class="block text-sm font-medium text-gray-700 mb-1">Domain Name</label>
+            <div class="relative rounded-md shadow-sm">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              </div>
+              <input type="text" id="domain-name" class="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm form-input" placeholder="RetailCloud Beta" required>
+            </div>
+            <p class="mt-1 text-xs text-gray-500">A descriptive name for this domain</p>
+          </div>
+          
+          <div>
+            <label for="domain-url" class="block text-sm font-medium text-gray-700 mb-1">Base URL</label>
+            <div class="relative rounded-md shadow-sm">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </div>
+              <input type="url" id="domain-url" class="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm form-input" placeholder="https://betaaccount.retailcloud.com" required>
+            </div>
+            <p class="mt-1 text-xs text-gray-500">The base URL without trailing slash</p>
+          </div>
+          
+          <div>
+            <label for="domain-token" class="block text-sm font-medium text-gray-700 mb-1">Bearer Token</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+              </div>
+              <input type="password" id="domain-token" class="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm form-input" placeholder="Paste your bearer token here" style="min-height: 80px;">
+            </div>
+            <div class="mt-2 flex items-center">
+              <input id="show-token" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+              <label for="show-token" class="ml-2 block text-sm text-gray-600">Show token</label>
+            </div>
+            <p class="mt-1 text-xs text-gray-500">Authentication token for API requests</p>
+          </div>
+          
+          <div class="bg-blue-50 rounded-md p-3 mt-2">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3 flex-1 md:flex md:justify-between">
+                <p class="text-sm text-blue-700">Tokens are stored locally in your browser and never sent to any server except the domain specified above.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="pt-4 border-t border-gray-200 mt-6 flex justify-end space-x-3">
+          <button type="button" id="cancel-domain-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+            Cancel
+          </button>
+          <button type="submit" id="save-domain-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Save Domain
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Service Modal -->
+  <div id="service-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-medium text-gray-900">Add Service</h3>
+        <button id="close-service-modal" class="text-gray-400 hover:text-gray-500">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <form id="service-form">
+        <div class="space-y-4">
+          <div>
+            <label for="service-name" class="block text-sm font-medium text-gray-700">Name</label>
+            <input type="text" id="service-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Batch Ping" required>
+          </div>
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label for="service-method" class="block text-sm font-medium text-gray-700">Method</label>
+              <select id="service-method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+            </div>
+            <div class="col-span-2">
+              <label for="service-path" class="block text-sm font-medium text-gray-700">Path</label>
+              <input type="text" id="service-path" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="/batch/ping" required>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <input id="service-auto-check" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+            <label for="service-auto-check" class="ml-2 block text-sm text-gray-900">Auto-check every 30 seconds</label>
+          </div>
+        </div>
+        <div class="mt-5 flex justify-end space-x-3">
+          <button type="button" id="cancel-service-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Cancel
+          </button>
+          <button type="submit" id="save-service-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Save
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit API Suite Modal -->
+  <div id="api-suite-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-xl w-full p-6">
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center space-x-2">
+          <div class="bg-purple-100 p-2 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 id="api-suite-modal-title" class="text-lg font-semibold text-gray-900">Add API Suite</h3>
+        </div>
+        <button id="close-api-suite-modal" class="text-gray-400 hover:text-gray-500 transition-colors">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <form id="api-suite-form" class="space-y-5">
+        <div class="space-y-5">
+          <div>
+            <label for="api-suite-name" class="block text-sm font-medium text-gray-700 mb-1">Suite Name</label>
+            <input type="text" id="api-suite-name" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm form-input" placeholder="User Management APIs" required>
+            <p class="mt-1 text-xs text-gray-500">A descriptive name for this API suite</p>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Endpoints</label>
+            <div id="api-endpoints-container" class="space-y-3">
+              <!-- Endpoint fields will be added here by JavaScript -->
+            </div>
+            <button type="button" id="add-endpoint-btn" class="mt-3 inline-flex items-center px-3 py-1.5 border border-dashed border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add Endpoint
+            </button>
+          </div>
+        </div>
+        
+        <div class="pt-4 border-t border-gray-200 mt-6 flex justify-end space-x-3">
+          <button type="button" id="cancel-api-suite-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors">
+            Cancel
+          </button>
+          <button type="submit" id="save-api-suite-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Save API Suite
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Copy API Suite Modal -->
+  <div id="copy-api-suite-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center space-x-2">
+          <div class="bg-blue-100 p-2 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Copy API Suite</h3>
+        </div>
+        <button id="close-copy-api-suite-modal" class="text-gray-400 hover:text-gray-500 transition-colors">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <form id="copy-api-suite-form" class="space-y-4">
+        <div>
+          <p class="text-sm text-gray-700 mb-2">Copy "<strong id="copy-suite-name"></strong>" to selected environments:</p>
+          <div id="copy-environments-container" class="space-y-2">
+            <!-- Checkboxes will be rendered here by JavaScript -->
+          </div>
+        </div>
+        <div class="pt-4 border-t border-gray-200 flex justify-end space-x-3">
+          <button type="button" id="cancel-copy-api-suite-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+            Cancel
+          </button>
+          <button type="submit" id="perform-copy-api-suite-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors btn-primary">
+            Copy Suite
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Settings Modal -->
+  <div id="notification-settings-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center space-x-2">
+          <div class="bg-indigo-100 p-2 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Notification Settings</h3>
+        </div>
+        <button id="close-notification-settings-modal" class="text-gray-400 hover:text-gray-500 transition-colors">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div class="flex items-center">
+          <input type="checkbox" id="enable-notifications" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+          <label for="enable-notifications" class="ml-2 block text-sm text-gray-900">Enable Desktop Notifications for Service Downtime</label>
+        </div>
+        <p class="text-xs text-gray-500">Receive a browser notification when a monitored service goes down. You may be prompted to grant permission.</p>
+      </div>
+      <div class="pt-4 border-t border-gray-200 mt-6 flex justify-end">
+        <button type="button" id="save-notification-settings-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors btn-primary">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tax Calculator Script -->
+  <script>
+    function calculateTaxes() {
+      const taxIncPrice = parseFloat(document.getElementById('tax-inc-price').value) || 0;
+      const manuallyEnteredDiscountRate = parseFloat(document.getElementById('discount-rate').value) || 0;
+      const selectedDiscountId = document.getElementById('discount-select').value;
+      const calcMethod = document.querySelector('input[name="calc-method"]:checked').value;
+
+      let discountAmount = 0;
+      let priceAfterDiscountTaxInc = taxIncPrice;
+
+      // --- Calculate Discount ---
+      if (selectedDiscountId) {
+        const selectedDiscount = allDiscounts.find(d => d.id == selectedDiscountId);
+        if (selectedDiscount) {
+          if (selectedDiscount.discountType === 'percentage') {
+            discountAmount = taxIncPrice * (selectedDiscount.rate / 100);
+          } else if (selectedDiscount.discountType === 'amount') {
+            discountAmount = selectedDiscount.rate;
+          }
+          priceAfterDiscountTaxInc = taxIncPrice - discountAmount;
+        }
+      } else {
+        discountAmount = taxIncPrice * (manuallyEnteredDiscountRate / 100);
+        priceAfterDiscountTaxInc = taxIncPrice - discountAmount;
+      }
+
+      priceAfterDiscountTaxInc = Math.max(0, priceAfterDiscountTaxInc);
+      discountAmount = Math.min(taxIncPrice, discountAmount); // Discount can't be more than original price
+
+      document.getElementById('result-original-tax-inc-price').textContent = `$${taxIncPrice.toFixed(2)}`;
+      document.getElementById('result-discount-amount').textContent = `$${discountAmount.toFixed(2)}`;
+      document.getElementById('result-price-after-discount-tax-inc').textContent = `$${priceAfterDiscountTaxInc.toFixed(2)}`;
+
+      let finalTaxExclusivePrice = 0;
+      let finalTotalTax = 0;
+
+      // Determine the base price for tax calculation based on method
+      let basePriceForTaxCalculation;
+      if (calcMethod === 'zeropos') {
+        basePriceForTaxCalculation = priceAfterDiscountTaxInc; // Tax-Inc Price *after* discount
+      } else if (calcMethod === 'kiosk') {
+        basePriceForTaxCalculation = taxIncPrice - discountAmount; // Price after discount (A)
+      }
+      basePriceForTaxCalculation = Math.max(0, basePriceForTaxCalculation); // Ensure not negative
+
+      // Get taxes to apply: from selected item or manually entered
+      let taxesToApply = [];
+      const itemSelectElement = document.getElementById('item-select');
+      const selectedItemId = itemSelectElement ? itemSelectElement.value : ''; // Safe access
+      const selectedItem = allItems.find(item => item.id === selectedItemId);
+
+      if (selectedItem && selectedItem.taxRates && selectedItem.taxRates.length > 0) {
+          selectedItem.taxRates.forEach(itemTaxRate => {
+              const matchedTax = allTaxes.find(tax => tax.taxID === itemTaxRate.taxID);
+              if (matchedTax) {
+                  // Iterate over tax1, tax2... up to 6 if defined in the API response
+                  for (let i = 1; i <= 6; i++) {
+                    const taxField = matchedTax[`tax${i}`];
+                    if (taxField && taxField.rate && taxField.rate.value !== undefined) {
+                        taxesToApply.push({ rate: taxField.rate.value, compounded: matchedTax.compounded });
+                    }
+                  }
+              }
+          });
+      } else {
+          // Use manually entered tax rates if no item selected or item has no specific taxes
+          Array.from(document.querySelectorAll('.tax-rate-input')).map(input => parseFloat(input.value) || 0)
+               .forEach(rate => taxesToApply.push({ rate: rate, compounded: false })); // Assume manual taxes are not compounded
+      }
+
+      // Filter out and separate compounded vs non-compounded taxes, only considering rates > 0
+      const compoundedTaxes = taxesToApply.filter(t => t.compounded && t.rate > 0);
+      const nonCompoundedTaxes = taxesToApply.filter(t => !t.compounded && t.rate > 0);
+
+      // --- Calculate non-compounded taxes ---
+      let nonCompoundedTaxAmount = 0;
+      nonCompoundedTaxes.forEach(taxObj => {
+          const taxExclusive = (basePriceForTaxCalculation * 100) / (100 + taxObj.rate);
+          nonCompoundedTaxAmount += (basePriceForTaxCalculation - taxExclusive);
+      });
+
+      // --- Calculate compounded taxes ---
+      let currentCompoundedBase = basePriceForTaxCalculation;
+      let compoundedTaxAmount = 0;
+      compoundedTaxes.forEach(taxObj => {
+          const taxExclusive = (currentCompoundedBase * 100) / (100 + taxObj.rate);
+          compoundedTaxAmount += (currentCompoundedBase - taxExclusive);
+          currentCompoundedBase = taxExclusive; // Update base for next compounded tax
+      });
+
+      finalTotalTax = nonCompoundedTaxAmount + compoundedTaxAmount;
+      finalTaxExclusivePrice = basePriceForTaxCalculation - finalTotalTax;
+
+      // Ensure no negative values due to floating point or weird inputs
+      finalTaxExclusivePrice = Math.max(0, finalTaxExclusivePrice);
+      finalTotalTax = Math.max(0, finalTotalTax);
+
+      const subtotal = finalTaxExclusivePrice + discountAmount; // Subtotal definition
+
+      document.getElementById('result-tax-exclusive-price').textContent = `$${finalTaxExclusivePrice.toFixed(2)}`;
+      document.getElementById('result-total-tax').textContent = `$${finalTotalTax.toFixed(2)}`;
+      document.getElementById('result-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+    }
+
+    function renderTaxInputs() {
+      const container = document.getElementById('tax-rates-container');
+      // Add a default tax input if none exist
+      if (container.children.length === 0) {
+        addTaxInputField();
+      }
+      calculateTaxes(); // Recalculate after rendering inputs
+    }
+
+    function addTaxInputField(value = '') {
+      const container = document.getElementById('tax-rates-container');
+      if (container.children.length >= 6) {
+        showGeneralMessage('You can add a maximum of 6 tax rates.', 'info');
+        return;
+      }
+      const div = document.createElement('div');
+      div.className = 'flex items-center space-x-2';
+      div.innerHTML = `
+        <input type="number" class="tax-rate-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm" placeholder="e.g., 5, 10" step="0.01" value="${value}">
+        <button type="button" class="remove-tax-rate-btn p-2 border border-transparent rounded-full shadow-sm text-red-600 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+          </svg>
+        </button>
+      `;
+      container.appendChild(div);
+
+      // Add event listener to new input and remove button
+      div.querySelector('.tax-rate-input').addEventListener('input', calculateTaxes);
+      div.querySelector('.remove-tax-rate-btn').addEventListener('click', (e) => {
+        e.target.closest('.flex.items-center.space-x-2').remove();
+        calculateTaxes(); // Recalculate after removing an input
+      });
+
+      calculateTaxes(); // Recalculate after adding a new input
+    }
+  </script>
+  <script>
+    let allItems = [];
+    let allTaxes = [];
+    let allDiscounts = [];
+
+    // Helper function to fetch data from proxy
+    async function fetchFromProxy(url) {
+      try {
+        const selectedDomain = getSelectedDomain();
+        if (!selectedDomain) {
+          showGeneralMessage('Please select a domain to fetch catalog data.', 'error');
+          return null;
+        }
+
+        const requestBody = {
+          url: url,
+          method: 'GET',
+          headers: selectedDomain.token ? { 'Authorization': `Bearer ${selectedDomain.token}` } : {}
+        };
+        const response = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorData.message || response.statusText}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching from proxy:', error);
+        showGeneralMessage(`Failed to load data: ${error.message}`, 'error');
+        return null;
+      }
+    }
+
+    async function loadItems(searchTerm = '') {
+      console.log('[loadItems] function called with searchTerm:', searchTerm); // Add this line
+      const itemSelect = document.getElementById('item-select');
+      const searchItemBtn = document.getElementById('search-item-button'); // Updated ID
+      itemSelect.innerHTML = '<option value="">Searching...</option>'; // Updated text
+      itemSelect.disabled = true;
+      searchItemBtn.disabled = true; // Disable search button during loading
+
+      let url = 'https://betaaccount.retailcloud.com/console/catalog/items';
+      if (searchTerm) {
+        // Check if searchTerm is purely numeric (for itemID search)
+        if (!isNaN(searchTerm) && !isNaN(parseFloat(searchTerm))) {
+          url = `https://betaaccount.retailcloud.com/console/catalog/items?itemID=${encodeURIComponent(searchTerm)}`;
+        } else {
+          url = `https://betaaccount.retailcloud.com/console/catalog/items?name=${encodeURIComponent(searchTerm)}`;
+        }
+      }
+      console.log('[loadItems] Fetching from URL:', url);
+      const itemsData = await fetchFromProxy(url);
+      console.log('[loadItems] - Raw itemsData from API:', itemsData);
+
+      let actualItemsData = [];
+      if (Array.isArray(itemsData)) {
+        actualItemsData = itemsData;
+      } else if (itemsData && Array.isArray(itemsData.data)) {
+        actualItemsData = itemsData.data;
+      } else if (itemsData && itemsData.data && Array.isArray(itemsData.data.data)) {
+        actualItemsData = itemsData.data.data;
+      } else if (itemsData && Array.isArray(itemsData.items)) {
+        actualItemsData = itemsData.items;
+      } else {
+        console.warn('[loadItems] - Items data is not in an expected array format.', itemsData);
+      }
+
+      // Clear previous options
+      itemSelect.innerHTML = ''; 
+
+      if (actualItemsData.length > 0) {
+        allItems = actualItemsData;
+        itemSelect.innerHTML = '<option value="">Search and select an item</option>';
+        allItems.forEach(item => {
+          const option = document.createElement('option');
+          option.value = item.id;
+          option.textContent = `${item.name} ($${item.sellingPrice ? item.sellingPrice.toFixed(2) : '0.00'})`;
+          itemSelect.appendChild(option);
+        });
+        itemSelect.disabled = false;
+      } else {
+        allItems = [];
+        itemSelect.innerHTML = '<option value="">No items found</option>';
+        itemSelect.disabled = true;
+      }
+      searchItemBtn.disabled = false; // Re-enable search button
+    }
+
+    async function loadTaxes() {
+      const taxesData = await fetchFromProxy('https://betaaccount.retailcloud.com/console/catalog/taxes');
+      if (taxesData && taxesData.length > 0) {
+        allTaxes = taxesData;
+        console.log('Loaded Taxes:', allTaxes);
+      } else {
+        allTaxes = [];
+        console.log('No taxes found.');
+      }
+    }
+
+    async function loadDiscounts() {
+      const discountsData = await fetchFromProxy('https://betaaccount.retailcloud.com/console/catalog/promotions');
+      const discountSelect = document.getElementById('discount-select');
+      discountSelect.innerHTML = '<option value="">Loading discounts...</option>'; // Reset options
+      discountSelect.disabled = true; // Disable during loading
+
+      if (discountsData && discountsData.length > 0) {
+        allDiscounts = discountsData;
+        allDiscounts.forEach(discount => {
+          const option = document.createElement('option');
+          option.value = discount.id;
+          option.textContent = `${discount.description} (${discount.rate}${discount.discountType === 'percentage' ? '%' : '$'})`;
+          discountSelect.appendChild(option);
+        });
+        discountSelect.disabled = false; // Re-enable after loading
+        console.log('Loaded Discounts:', allDiscounts);
+      } else {
+        allDiscounts = [];
+        discountSelect.innerHTML = '<option value="">No discounts found</option>';
+        discountSelect.disabled = true; // Keep disabled if no discounts
+        console.log('No discounts found.');
+      }
+    }
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Storage key for local storage
+      const STORAGE_KEY = 'website-automation-data';
+
+    // Default state
+    const defaultState = {
+      currentEnv: 'beta',
+      enableNotifications: false, // New setting for notifications
+      environments: {
+        beta: {
+          selectedDomainId: null,
+          domains: [],
+          services: [], // Ensure services is initialized
+          apiSuites: []
+        },
+        uat: {
+          selectedDomainId: null,
+          domains: [{
+            id: generateId(),
+            name: 'RetailCloud UAT',
+            url: 'https://uat-platform.retailcloud.com', // Corrected UAT URL
+            token: '',
+            services: [
+              {
+                id: generateId(),
+                name: 'Batch Ping',
+                method: 'GET',
+                path: '/batch/ping',
+                autoCheck: false,
+                lastCheck: null
+              }
+            ]
+          }],
+          services: [], // Ensure services is initialized
+          apiSuites: []
+        },
+        production: { // New Production environment
+          selectedDomainId: null,
+          domains: [{
+            id: generateId(),
+            name: 'RetailCloud Live',
+            url: 'https://account.retailcloud.com',
+            token: '',
+            services: [
+              {
+                id: generateId(),
+                name: 'Batch Ping',
+                method: 'GET',
+                path: '/batch/ping',
+                autoCheck: false,
+                lastCheck: null
+              }
+            ]
+          }],
+          apiSuites: []
+        }
+      }
+    };
+
+    // State management
+    let state = loadState();
+    
+    // Auto-check intervals
+    const intervals = new Map();
+
+    // Utility functions
+    function generateId() {
+      return Math.random().toString(36).substring(2, 15);
+    }
+
+    function loadState() {
+      try {
+        const savedState = localStorage.getItem(STORAGE_KEY);
+        if (savedState) {
+          const parsedState = JSON.parse(savedState);
+          // Ensure enableNotifications is present in loaded state
+          if (typeof parsedState.enableNotifications === 'undefined') {
+            parsedState.enableNotifications = defaultState.enableNotifications;
+          }
+          // Ensure apiSuites and services exist in loaded state for all environments
+          for (const envKey of ['beta', 'uat', 'production']) { // Added production here
+            if (!parsedState.environments[envKey]) {
+              parsedState.environments[envKey] = JSON.parse(JSON.stringify(defaultState.environments[envKey]));
+            }
+            if (!parsedState.environments[envKey].apiSuites) {
+              parsedState.environments[envKey].apiSuites = [];
+            }
+            if (!parsedState.environments[envKey].services) {
+              parsedState.environments[envKey].services = [];
+            }
+            // Ensure each API suite has an endpoints array
+            if (parsedState.environments[envKey].apiSuites) {
+              parsedState.environments[envKey].apiSuites.forEach(suite => {
+                if (!suite.endpoints) {
+                  suite.endpoints = [];
+                }
+              });
+            }
+          }
+          return parsedState;
+        }
+      } catch (error) {
+        console.error('Error loading state:', error);
+      }
+      
+      // Initialize with a default domain and service for beta environment
+      const newState = JSON.parse(JSON.stringify(defaultState));
+      // No need to add default domain/suite here, as it's already in defaultState
+      
+      return newState;
+    }
+
+    function saveState() {
+      // Defer saving to avoid blocking the main thread
+      setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          console.log('[saveState] - State saved to localStorage successfully.');
+      } catch (error) {
+          console.error('[saveState] - Error saving state to localStorage:', error);
+      }
+      }, 0); // Defer to the next event loop tick
+    }
+
+    function getCurrentEnv() {
+      return state.currentEnv;
+    }
+
+    function getCurrentEnvData() {
+      return state.environments[state.currentEnv];
+    }
+
+    function getDomains() {
+      return getCurrentEnvData().domains;
+    }
+
+    function getSelectedDomain() {
+      const domains = getDomains();
+      const selectedId = getCurrentEnvData().selectedDomainId;
+      
+      if (selectedId) {
+        return domains.find(domain => domain.id === selectedId) || null;
+      }
+      
+      return domains.length > 0 ? domains[0] : null;
+    }
+
+    function getServices() {
+      const domain = getSelectedDomain();
+      return domain ? domain.services : [];
+    }
+
+    function getApiSuites() {
+      return getCurrentEnvData().apiSuites;
+    }
+
+    function clearValidationErrors() {
+      document.querySelectorAll('.validation-error').forEach(el => el.remove());
+      document.querySelectorAll('.border-red-500').forEach(el => {
+        el.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+      });
+    }
+    
+    function showValidationError(inputElement, message) {
+      clearValidationErrors(); // Clear all existing errors first
+      inputElement.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+      
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'validation-error text-red-500 text-xs mt-1';
+      errorDiv.textContent = message;
+      
+      // Adjust insertion based on input type for better placement
+      if (inputElement.id === 'domain-token') {
+        const parentDiv = inputElement.closest('div').parentElement;
+        parentDiv.insertBefore(errorDiv, parentDiv.querySelector('p'));
+      } else {
+        inputElement.parentElement.parentElement.insertBefore(errorDiv, inputElement.parentElement.nextSibling);
+      }
+      
+      inputElement.focus();
+      return false;
+    }
+
+    function showGeneralMessage(message, type = 'info') {
+      const messageDiv = document.createElement('div');
+      let bgColor, borderColor, textColor;
+
+      switch (type) {
+        case 'success':
+          bgColor = 'bg-green-100';
+          borderColor = 'border-green-500';
+          textColor = 'text-green-700';
+          break;
+        case 'error':
+          bgColor = 'bg-red-100';
+          borderColor = 'border-red-500';
+          textColor = 'text-red-700';
+          break;
+        case 'info':
+        default:
+          bgColor = 'bg-blue-100';
+          borderColor = 'border-blue-500';
+          textColor = 'text-blue-700';
+          break;
+      }
+
+      messageDiv.className = `fixed bottom-4 right-4 ${bgColor} border-l-4 ${borderColor} ${textColor} p-4 rounded shadow-md fade-in z-50`;
+      messageDiv.innerHTML = `
+        <div class="flex items-center">
+          <svg class="h-5 w-5 ${textColor} mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            ${type === 'success' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />' :
+              type === 'error' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2A9 9 0 111 12a9 9 0 0118 0z" />' :
+              '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />'
+            }
+          </svg>
+          <p>${message}</p>
+        </div>
+      `;
+
+      document.body.appendChild(messageDiv);
+
+      setTimeout(() => {
+        messageDiv.classList.add('opacity-0');
+        messageDiv.style.transition = 'opacity 0.5s ease-in-out';
+        setTimeout(() => messageDiv.remove(), 500);
+      }, 3000);
+    }
+
+    // Function to request notification permission
+    async function requestNotificationPermission() {
+      if (!('Notification' in window)) {
+        console.warn('This browser does not support desktop notification');
+        return false;
+      }
+
+      // Check if permission is already granted
+      if (Notification.permission === 'granted') {
+        console.log('Notification permission already granted.');
+        return true;
+      }
+
+      // If permission is denied, or default, ask the user
+      if (Notification.permission !== 'denied') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          console.log('Notification permission granted.');
+          return true;
+        } else {
+          console.warn('Notification permission denied.');
+          showGeneralMessage('Notification permission denied. Please enable them in your browser settings to receive service alerts.', 'info');
+          return false;
+        }
+      } else {
+        // Permission explicitly denied
+        console.warn('Notification permission explicitly denied by the user.');
+        showGeneralMessage('Notifications are blocked. Please enable them manually in your browser settings to receive service alerts.', 'info');
+        return false;
+      }
+    }
+
+    // Function to show a service status notification
+    function showServiceNotification(serviceName, status) {
+      if (Notification.permission === 'granted') {
+        const title = `Service Status: ${serviceName}`;
+        const options = {
+          body: `${serviceName} is now ${status}.`,
+          icon: 'https://raw.githubusercontent.com/RetailCloud/website-automation/main/icon.png', // Placeholder icon, replace with a real one
+          badge: 'https://raw.githubusercontent.com/RetailCloud/website-automation/main/icon.png', // Used on Android
+          data: {
+            url: window.location.origin // Open the current origin when clicked
+          }
+        };
+        
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification(title, options);
+          });
+        } else {
+          // Fallback to regular Notification if service worker is not active
+          const notification = new Notification(title, options);
+          notification.onclick = function(event) {
+            event.preventDefault();
+            window.focus();
+          };
+        }
+      } else {
+        console.warn('Cannot show notification: Permission not granted.');
+      }
+    }
+
+    // Notification Settings Modal Functions
+    function openNotificationSettingsModal() {
+      console.log('openNotificationSettingsModal called');
+      const modal = document.getElementById('notification-settings-modal');
+      const enableNotificationsToggle = document.getElementById('enable-notifications');
+      
+      enableNotificationsToggle.checked = state.enableNotifications; // Set initial state of toggle
+      modal.classList.remove('hidden');
+    }
+
+    function closeNotificationSettingsModal() {
+      console.log('closeNotificationSettingsModal called');
+      const modal = document.getElementById('notification-settings-modal');
+      modal.classList.add('hidden');
+    }
+
+    async function saveNotificationSettings() {
+      console.log('saveNotificationSettings called');
+      const enableNotificationsToggle = document.getElementById('enable-notifications');
+      const newEnableNotificationsState = enableNotificationsToggle.checked;
+
+      if (newEnableNotificationsState && !state.enableNotifications) {
+        // If enabling notifications and they were previously disabled, request permission
+        const granted = await requestNotificationPermission();
+        if (!granted) {
+          // If permission is not granted, revert the toggle and show message
+          enableNotificationsToggle.checked = false;
+          state.enableNotifications = false; // Ensure state is also reverted
+          saveState(); // Save the reverted state
+          closeNotificationSettingsModal(); // Close the modal
+          return; // Stop further execution
+        }
+      }
+
+      state.enableNotifications = newEnableNotificationsState;
+
+      // Register service worker if enabled and not already registered
+      if (state.enableNotifications && 'serviceWorker' in navigator && !navigator.serviceWorker.controller) {
+        try {
+          const registration = await navigator.serviceWorker.register('/service-worker.js');
+          console.log('Service Worker registered with scope:', registration.scope);
+        } catch (error) {
+          console.error('Service Worker registration failed:', error);
+          showGeneralMessage('Service Worker registration failed. Persistent notifications may not work.', 'error');
+        }
+      }
+
+      saveState();
+      showGeneralMessage('Notification settings saved.', 'success');
+      closeNotificationSettingsModal();
+    }
+
+    function escapeHtml(html) {
+      const div = document.createElement('div');
+      div.textContent = html;
+      return div.innerHTML;
+    }
+
+    function getRelativeTime(timestamp) {
+      const now = new Date();
+      const diff = now - timestamp;
+      
+      if (diff < 60000) {
+        return 'just now';
+      } else if (diff < 3600000) {
+        const minutes = Math.floor(diff / 60000);
+        return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      } else if (diff < 86400000) {
+        const hours = Math.floor(diff / 3600000);
+        return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      } else {
+        const days = Math.floor(diff / 86400000);
+        return `${days} day${days > 1 ? 's' : ''} ago`;
+      }
+    }
+
+    // UI Rendering Functions
+    function renderEnvironmentTabs() {
+      const currentEnv = getCurrentEnv();
+      
+      // Desktop tabs
+      document.getElementById('beta-env').classList.toggle('active', currentEnv === 'beta');
+      document.getElementById('uat-env').classList.toggle('active', currentEnv === 'uat');
+      document.getElementById('live-env').classList.toggle('active', currentEnv === 'production'); // New production tab
+      
+      // Update environment display
+      document.getElementById('current-env').textContent = currentEnv === 'production' ? 'Live' : currentEnv;
+    }
+
+    function renderDomainSelect() {
+      const select = document.getElementById('domain-select');
+      const domains = getDomains();
+      const selectedDomainId = getCurrentEnvData().selectedDomainId;
+      
+      // Clear existing options
+      select.innerHTML = '<option value="" disabled selected>Select a domain</option>';
+      
+      // Add domain options
+      domains.forEach(domain => {
+        const option = document.createElement('option');
+        option.value = domain.id;
+        option.textContent = domain.name; // Only show domain name, not URL
+        select.appendChild(option);
+      });
+      
+      // Set selected domain or default to null if no domains
+      if (domains.length > 0) {
+        select.value = selectedDomainId || domains[0].id;
+        getCurrentEnvData().selectedDomainId = select.value;
+      } else {
+        select.value = ""; // Ensure "Select a domain" is visible
+        getCurrentEnvData().selectedDomainId = null;
+      }
+      
+      // Update domain count
+      document.getElementById('domain-count').textContent = `${domains.length} domain${domains.length !== 1 ? 's' : ''}`;
+      
+      // Enable/disable edit and delete buttons based on whether a domain is selected
+      const hasSelectedDomain = !!getSelectedDomain();
+      document.getElementById('edit-domain-btn').disabled = !hasSelectedDomain;
+      document.getElementById('delete-domain-btn').disabled = !hasSelectedDomain;
+    }
+
+    function renderServices() {
+      const servicesGrid = document.getElementById('services-grid');
+      const emptyState = document.getElementById('empty-state');
+      const services = getServices();
+      
+      // Get existing service cards by their data-id
+      const existingServiceCards = new Map();
+      servicesGrid.querySelectorAll('.card').forEach(card => {
+        existingServiceCards.set(card.dataset.id, card);
+      });
+
+      // Hide empty state initially, show if no services remain after update
+      emptyState.classList.add('hidden');
+      servicesGrid.classList.remove('hidden');
+      
+      // Iterate over current services to update or add cards
+      services.forEach(service => {
+        let serviceCard = existingServiceCards.get(service.id);
+
+        if (serviceCard) {
+          // Update existing card
+          updateServiceCard(serviceCard, service);
+          existingServiceCards.delete(service.id); // Mark as processed
+        } else {
+          // Create new card
+          serviceCard = document.createElement('div');
+          serviceCard.className = 'card bg-white p-6 fade-in'; // Add fade-in for new cards
+        serviceCard.dataset.id = service.id;
+          updateServiceCard(serviceCard, service); // Populate with content
+          servicesGrid.appendChild(serviceCard);
+        }
+      });
+
+      // Remove cards that no longer exist in the state
+      existingServiceCards.forEach(card => {
+        card.remove();
+      });
+
+      // Show empty state if no services after update
+      if (services.length === 0) {
+        servicesGrid.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        document.getElementById('empty-add-service-btn').addEventListener('click', openServiceModal);
+      }
+      
+      // Update stats
+      updateStats();
+    }
+
+    function updateServiceCard(serviceCard, service) {
+        // Determine status
+        let statusClass = 'status-unknown';
+        let statusText = 'Unknown';
+        
+        if (service.lastCheck) {
+          statusClass = service.lastCheck.success ? 'status-up' : 'status-down';
+          statusText = service.lastCheck.success ? 'Up' : 'Down';
+        }
+        
+        // Format last checked time
+        let lastCheckedText = 'Never checked';
+        if (service.lastCheck && service.lastCheck.timestamp) {
+          const date = new Date(service.lastCheck.timestamp);
+          lastCheckedText = `Last checked: ${date.toLocaleTimeString()}`;
+        }
+        
+      // Create service card content (or update existing innerHTML)
+        serviceCard.innerHTML = `
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <h3 class="font-medium text-gray-900">${service.name}</h3>
+              <div class="text-sm text-gray-500 mt-1">
+                <span class="inline-block bg-gray-100 rounded px-2 py-1 text-xs font-mono">${service.method}</span>
+                <span class="ml-1">${service.path}</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="flex items-center">
+                <span class="status-badge ${statusClass}"></span>
+                <span class="font-medium">${statusText}</span>
+              </div>
+              ${service.lastCheck ? `<div class="text-xs text-gray-500 mt-1">${service.lastCheck.responseTime}ms</div>` : ''}
+            </div>
+          </div>
+          <div class="border-t border-gray-100 pt-4 pb-2">
+            <div class="text-sm text-gray-600 mb-2">${lastCheckedText}</div>
+            ${service.lastCheck ? `
+              <div class="bg-gray-50 rounded p-2 text-xs font-mono overflow-x-auto max-h-24 overflow-y-auto">
+                ${service.lastCheck.data ? escapeHtml(service.lastCheck.data) : 'No data'}
+              </div>
+            ` : ''}
+          </div>
+          <div class="border-t border-gray-100 pt-4 mt-2 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+              <button class="check-service-btn px-2 py-1 bg-gray-800 text-white text-xs rounded hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                Check
+              </button>
+              <label class="flex items-center text-xs text-gray-600">
+                <input type="checkbox" class="auto-check-toggle h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mr-1" ${service.autoCheck ? 'checked' : ''}>
+                Auto
+              </label>
+            </div>
+            <button class="delete-service-btn px-2 py-1 bg-red-50 text-red-700 text-xs rounded hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+              Remove
+            </button>
+          </div>
+        `;
+        
+      // Re-attach event listeners as innerHTML overwrites them
+        const checkBtn = serviceCard.querySelector('.check-service-btn');
+        checkBtn.addEventListener('click', () => checkService(service.id));
+        
+        const autoCheckToggle = serviceCard.querySelector('.auto-check-toggle');
+        autoCheckToggle.addEventListener('change', (e) => toggleAutoCheck(service.id, e.target.checked));
+        
+        const deleteBtn = serviceCard.querySelector('.delete-service-btn');
+        deleteBtn.addEventListener('click', () => deleteService(service.id));
+    }
+
+    function renderApiSuites() {
+      const apiSuitesGrid = document.getElementById('api-suites-grid');
+      const emptyState = document.getElementById('empty-api-suites-state');
+      const apiSuites = getApiSuites();
+
+      const existingApiSuiteCards = new Map();
+      apiSuitesGrid.querySelectorAll('.card').forEach(card => {
+        existingApiSuiteCards.set(card.dataset.id, card);
+      });
+
+      emptyState.classList.add('hidden');
+      apiSuitesGrid.classList.remove('hidden');
+
+      apiSuites.forEach(apiSuite => {
+        let apiSuiteCard = existingApiSuiteCards.get(apiSuite.id);
+
+        if (apiSuiteCard) {
+          updateApiSuiteCard(apiSuiteCard, apiSuite);
+          existingApiSuiteCards.delete(apiSuite.id);
+        } else {
+          apiSuiteCard = document.createElement('div');
+          apiSuiteCard.className = 'card bg-white p-6 fade-in';
+          apiSuiteCard.dataset.id = apiSuite.id;
+          updateApiSuiteCard(apiSuiteCard, apiSuite);
+          apiSuitesGrid.appendChild(apiSuiteCard);
+        }
+      });
+
+      existingApiSuiteCards.forEach(card => {
+        card.remove();
+      });
+
+      if (apiSuites.length === 0) {
+        apiSuitesGrid.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        document.getElementById('empty-add-api-suite-btn').addEventListener('click', openApiSuiteModal);
+      }
+    }
+
+    function updateApiSuiteCard(apiSuiteCard, apiSuite) {
+      let totalEndpoints = apiSuite.endpoints.length;
+      let successfulEndpoints = 0;
+      apiSuite.endpoints.forEach(endpoint => {
+        if (endpoint.lastCheck && endpoint.lastCheck.success) {
+          successfulEndpoints++;
+        }
+      });
+
+      const statusClass = totalEndpoints > 0 && successfulEndpoints === totalEndpoints ? 'status-up' : (successfulEndpoints > 0 ? 'status-unknown' : 'status-down');
+      const statusText = totalEndpoints > 0 && successfulEndpoints === totalEndpoints ? 'All Up' : (successfulEndpoints > 0 ? 'Partial Up' : 'All Down');
+      
+      let lastCheckedText = 'Never checked';
+      // Find the latest check time among all endpoints in the suite
+      const latestCheckTime = apiSuite.endpoints.reduce((latest, endpoint) => {
+        if (endpoint.lastCheck && endpoint.lastCheck.timestamp > latest) {
+          return endpoint.lastCheck.timestamp; // Corrected this line
+        }
+        return latest;
+      }, 0);
+
+      if (latestCheckTime) {
+        const date = new Date(latestCheckTime);
+        lastCheckedText = `Last checked: ${date.toLocaleTimeString()}`;
+      }
+
+      apiSuiteCard.innerHTML = `
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h3 class="font-medium text-gray-900">${apiSuite.name}</h3>
+            <div class="text-sm text-gray-500 mt-1">
+              <span class="inline-block bg-purple-100 rounded px-2 py-1 text-xs font-mono">${totalEndpoints} Endpoints</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="flex items-center">
+              <span class="status-badge ${statusClass}"></span>
+              <span class="font-medium">${statusText}</span>
+            </div>
+            <div class="text-xs text-gray-500 mt-1">${successfulEndpoints}/${totalEndpoints} Success</div>
+          </div>
+        </div>
+        <div class="border-t border-gray-100 pt-4 pb-2">
+          <div class="text-sm text-gray-600 mb-2">${lastCheckedText}</div>
+          <!-- Detailed endpoint status could go here -->
+        </div>
+        <div class="border-t border-gray-100 pt-4 mt-2 flex justify-between items-center">
+          <div class="flex items-center space-x-2">
+            <button class="check-api-suite-btn px-2 py-1 bg-purple-800 text-white text-xs rounded hover:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+              Check All
+            </button>
+            <button class="edit-api-suite-btn px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Edit
+            </button>
+            <button class="copy-api-suite-btn px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+              Copy
+            </button>
+          </div>
+          <button class="delete-api-suite-btn px-2 py-1 bg-red-50 text-red-700 text-xs rounded hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            Remove
+          </button>
+        </div>
+      `;
+      
+      const checkBtn = apiSuiteCard.querySelector('.check-api-suite-btn');
+      checkBtn.addEventListener('click', () => checkApiSuite(apiSuite.id));
+
+      const editBtn = apiSuiteCard.querySelector('.edit-api-suite-btn');
+      editBtn.addEventListener('click', () => openApiSuiteModal(apiSuite.id));
+
+      const copyBtn = apiSuiteCard.querySelector('.copy-api-suite-btn');
+      copyBtn.addEventListener('click', () => openCopyApiSuiteModal(apiSuite.id));
+
+      const deleteBtn = apiSuiteCard.querySelector('.delete-api-suite-btn');
+      deleteBtn.addEventListener('click', () => deleteApiSuite(apiSuite.id));
+    }
+
+    function updateStats() {
+      const services = getServices();
+      const totalServices = services.length;
+      let upServices = 0;
+      let downServices = 0;
+      let totalResponseTime = 0;
+      let responseTimeCount = 0;
+      
+      services.forEach(service => {
+        if (service.lastCheck) {
+          if (service.lastCheck.success) {
+            upServices++;
+          } else {
+            downServices++;
+          }
+          
+          if (service.lastCheck.responseTime) {
+            totalResponseTime += service.lastCheck.responseTime;
+            responseTimeCount++;
+          }
+        }
+      });
+      
+      // Update UI
+      document.getElementById('total-services').textContent = totalServices;
+      document.getElementById('up-services').textContent = upServices;
+      document.getElementById('down-services').textContent = downServices;
+      
+      const avgResponseTime = responseTimeCount > 0 ? Math.round(totalResponseTime / responseTimeCount) : 0;
+      document.getElementById('avg-response-time').textContent = responseTimeCount > 0 ? avgResponseTime : '-';
+    }
+
+    function renderAll() {
+      renderEnvironmentTabs();
+      renderDomainSelect();
+      renderServices();
+      renderApiSuites(); // Render API suites after services
+    }
+
+    // Service Actions
+    async function checkService(id, endpointId = null, customUrl = null, customMethod = null) {
+      console.log(`[checkService] - Start: id=${id}, endpointId=${endpointId}`);
+      const domain = getSelectedDomain();
+      if (!domain) {
+        console.error(`[checkService] - No domain selected for id: ${id}`);
+        return { id, status: 'error', message: 'No domain selected' };
+      }
+      
+      let itemToUpdate;
+      let oldItemToUpdate = null; // Initialize oldItemToUpdate
+      let fullUrl;
+      let method;
+
+      // Determine if it's a service or an API suite endpoint
+      if (endpointId) { // It's an API suite endpoint
+        console.log(`[checkService] - Inside endpointId block. Looking for apiSuite with id: ${id}`);
+        
+        // CORRECTED: Get apiSuites from the environment level, not from the domain
+        const apiSuites = getApiSuites();
+        console.log(`[checkService] - All API Suites from getApiSuites():`, apiSuites, `Searching for suite ID: ${id}`);
+        const apiSuite = apiSuites.find(s => s.id === id);
+        
+        if (!apiSuite) {
+          console.error(`[checkService] - ERROR: API Suite not found for id: ${id}. All API Suites:`, apiSuites);
+          return { id, status: 'error', message: 'API Suite not found' };
+        }
+        console.log(`[checkService] - Found API Suite in checkService:`, apiSuite);
+        
+        oldItemToUpdate = JSON.parse(JSON.stringify(apiSuite.endpoints.find(e => e.id === endpointId)));
+        itemToUpdate = apiSuite.endpoints.find(e => e.id === endpointId);
+        if (!itemToUpdate) {
+          console.error(`[checkService] - ERROR: API Endpoint not found: suiteId=${id}, endpointId=${endpointId}. API Suite Endpoints:`, apiSuite.endpoints);
+          return { id: endpointId, status: 'error', message: 'API Endpoint not found' };
+        }
+        console.log(`[checkService] - Found API Endpoint:`, itemToUpdate);
+        
+        // Resolve {{hosturl}} placeholder
+        fullUrl = customUrl.replace('{{hosturl}}', domain.url);
+        method = customMethod; // Use the custom method passed for API suite endpoints
+        console.log(`[checkService] - Checking API Suite Endpoint: ${itemToUpdate.name}, URL: ${fullUrl}, Method: ${method}`);
+      } else { // It's a regular service
+        oldItemToUpdate = JSON.parse(JSON.stringify(domain.services.find(s => s.id === id)));
+        itemToUpdate = domain.services.find(s => s.id === id);
+        if (!itemToUpdate) {
+          console.error(`[checkService] - Service not found for id: ${id}`);
+          return { id, status: 'error', message: 'Service not found' };
+        }
+        fullUrl = `${domain.url}${itemToUpdate.path}`;
+        method = itemToUpdate.method;
+        console.log(`[checkService] - Checking Service: ${itemToUpdate.name}, URL: ${fullUrl}, Method: ${method}`);
+      }
+      
+      try {
+        const startTime = Date.now();
+        
+        const headers = {};
+        if (domain.token) {
+          headers['Authorization'] = `Bearer ${domain.token}`;
+        }
+        
+        const requestBody = {
+            url: fullUrl,
+            method: method,
+            headers
+          };
+        console.log('[checkService] - Client-side proxy request body:', requestBody);
+        const response = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+        console.log('[checkService] - Raw fetch response:', response);
+        
+        let result = {};
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            result = await response.json();
+            console.log('[checkService] - Parsed JSON response:', result);
+          } catch (jsonError) {
+            console.error('[checkService] - Error parsing JSON response:', jsonError, 'Raw response text:', await response.text());
+            result.data = 'JSON parse error';
+            result.status = response.status;
+            result.statusText = response.statusText;
+          }
+        } else {
+          result.data = await response.text();
+          console.log('[checkService] - Raw text response:', result.data);
+          result.status = response.status;
+          result.statusText = response.statusText;
+        }
+        const responseTime = Date.now() - startTime;
+        
+        // Update item (service or endpoint) with check results
+        if (itemToUpdate) {
+          itemToUpdate.lastCheck = {
+            success: response.ok && (result.data === 'pong' || (result.status && result.status >= 200 && result.status < 300)),
+            status: result.data === 'pong' ? 200 : result.status,
+            statusText: result.data === 'pong' ? 'OK' : result.statusText,
+            data: typeof result.data === 'object' ? JSON.stringify(result.data, null, 2) : result.data,
+            responseTime,
+            timestamp: Date.now()
+          };
+
+          // Check for status change to trigger notification
+          if (state.enableNotifications && itemToUpdate.lastCheck.success === false) {
+            showServiceNotification(itemToUpdate.name, 'Down');
+          }
+
+          console.log('[checkService] - Item updated:', itemToUpdate);
+        }
+        
+        saveState();
+        if (endpointId) {
+          renderApiSuites(); // Re-render API suites if an endpoint was checked
+        } else {
+          renderServices(); // Re-render services if a service was checked
+        }
+        console.log(`[checkService] - Check complete for id: ${itemToUpdate.id}, Status: ${itemToUpdate.lastCheck.success ? 'success' : 'error'}`);
+        return { id: itemToUpdate.id, status: itemToUpdate.lastCheck.success ? 'success' : 'error' };
+      } catch (error) {
+        console.error('[checkService] - Error checking service/endpoint:', error);
+        
+        if (itemToUpdate) {
+          itemToUpdate.lastCheck = {
+            success: false,
+            status: 'ERROR',
+            statusText: error.message || 'Request failed',
+            data: error.stack || error.message,
+            responseTime: 0,
+            timestamp: Date.now()
+          };
+          console.log('[checkService] - Item updated with error:', itemToUpdate);
+        }
+        
+        saveState();
+        if (endpointId) {
+          renderApiSuites();
+        } else {
+        renderServices();
+      }
+        console.error(`[checkService] - Check failed for id: ${itemToUpdate.id}, Message: ${error.message}`);
+        showGeneralMessage(`Failed to check ${itemToUpdate.name || 'service'}: ${error.message}`, 'error');
+        return { id: itemToUpdate.id, status: 'error', message: error.message };
+      }
+    }
+
+    async function checkApiSuite(apiSuiteId) {
+      console.log(`[checkApiSuite] - Starting check for API Suite: ${apiSuiteId}`);
+      const domain = getSelectedDomain();
+      if (!domain) {
+        console.error('[checkApiSuite] - No domain selected.');
+        return;
+      }
+
+      const apiSuites = getApiSuites();
+      const apiSuite = apiSuites.find(s => s.id === apiSuiteId);
+      if (!apiSuite) {
+        console.error(`[checkApiSuite] - API Suite not found: ${apiSuiteId}`);
+        return;
+      }
+
+      console.log(`[checkApiSuite] - Found API Suite: ${apiSuite.name} with ${apiSuite.endpoints.length} endpoints. Endpoints array:`, apiSuite.endpoints);
+      const checkPromises = apiSuite.endpoints.map(endpoint => {
+        const fullUrl = `${domain.url}${endpoint.path}`;
+        console.log(`[checkApiSuite] - Mapping endpoint:`, endpoint);
+        console.log(`[checkApiSuite] - Preparing check for endpoint: ${endpoint.name || 'Unnamed Endpoint'}, URL: ${fullUrl}, Method: ${endpoint.method}`); // Added || 'Unnamed Endpoint'
+        // Calling checkService with API suite and endpoint IDs
+        return checkService(apiSuiteId, endpoint.id, fullUrl, endpoint.method); // Pass apiSuiteId, endpointId, url, method
+      });
+      
+      try {
+        await Promise.all(checkPromises);
+        console.log(`[checkApiSuite] - All endpoints in suite ${apiSuite.name} checked successfully.`);
+      } catch (error) {
+        console.error(`[checkApiSuite] - Error checking endpoints in suite ${apiSuite.name}:`, error);
+        showGeneralMessage(`Error checking API Suite ${apiSuite.name}: ${error.message || 'An unknown error occurred.'}`, 'error');
+      } finally {
+        saveState();
+        renderApiSuites(); // Re-render API suites after all endpoints are checked
+        console.log(`[checkApiSuite] - UI re-rendered for API Suites.`);
+      }
+    }
+
+    function deleteApiSuite(apiSuiteId) {
+      const domain = getSelectedDomain();
+      if (!domain) return;
+
+      const apiSuites = getApiSuites();
+      const index = apiSuites.findIndex(s => s.id === apiSuiteId);
+      if (index === -1) return;
+
+      apiSuites.splice(index, 1);
+      saveState();
+      renderApiSuites();
+      showGeneralMessage(`API Suite removed successfully.`, 'success');
+    }
+
+    async function checkAllServices() {
+      const services = getServices();
+      if (services.length === 0) return [];
+      
+      const checkPromises = services.map(service => checkService(service.id));
+      const results = await Promise.all(checkPromises);
+      renderServices(); // Re-render services after all checks are done
+      return results;
+    }
+    
+    function startAutoCheck(serviceId) {
+      stopAutoCheck(serviceId);
+      intervals.set(serviceId, setInterval(() => checkService(serviceId), 30000)); // 30 seconds
+    }
+    
+    function stopAutoCheck(serviceId) {
+      if (intervals.has(serviceId)) {
+        clearInterval(intervals.get(serviceId));
+        intervals.delete(serviceId);
+      }
+    }
+    
+    function stopAllAutoChecks() {
+      intervals.forEach((interval) => clearInterval(interval));
+      intervals.clear();
+    }
+    
+    function toggleAutoCheck(serviceId, enabled) {
+      const domain = getSelectedDomain();
+      if (!domain) return;
+      
+      const service = domain.services.find(s => s.id === serviceId);
+      if (!service) return;
+      
+      service.autoCheck = enabled;
+      
+      if (enabled) {
+        startAutoCheck(service.id);
+      } else {
+        stopAutoCheck(service.id);
+      }
+      
+      saveState();
+    }
+    
+    function setupAutoChecks() {
+      const services = getServices();
+      if (!services) return;
+      
+      services.forEach(service => {
+        if (service.autoCheck) {
+          startAutoCheck(service.id);
+        }
+      });
+    }
+    
+    function deleteService(serviceId) {
+      const domain = getSelectedDomain();
+      if (!domain) return;
+      
+        stopAutoCheck(serviceId);
+        domain.services.splice(index, 1);
+        saveState();
+        renderServices();
+      showGeneralMessage(`Service removed successfully.`, 'success');
+    }
+
+    // Domain Modal Functions
+let editingDomainId = null;
+    
+    function openDomainModal(domainId = null) {
+      console.log('openDomainModal called with domainId:', domainId);
+      const modal = document.getElementById('domain-modal');
+      const titleEl = document.getElementById('domain-modal-title');
+      const nameInput = document.getElementById('domain-name');
+      const urlInput = document.getElementById('domain-url');
+      const tokenInput = document.getElementById('domain-token');
+      const showTokenCheckbox = document.getElementById('show-token');
+      
+      editingDomainId = domainId;
+      
+      // Set modal title
+      titleEl.textContent = domainId ? 'Edit Domain' : 'Add Domain';
+      
+      // Reset form
+      document.getElementById('domain-form').reset();
+      
+      // Fill form if editing
+      if (domainId) {
+        const domain = getDomains().find(d => d.id === domainId);
+        if (domain) {
+          nameInput.value = domain.name;
+          urlInput.value = domain.url;
+          tokenInput.value = domain.token || '';
+        }
+      }
+      
+      // Reset token visibility and ensure proper field type
+      showTokenCheckbox.checked = false;
+      tokenInput.type = 'password';
+      
+      // Clear any validation errors
+      clearValidationErrors();
+
+      
+      // Show modal
+      modal.classList.remove('hidden');
+    }
+    
+    function closeDomainModal() {
+      console.log('closeDomainModal called');
+      const modal = document.getElementById('domain-modal');
+      
+      // Hide the modal
+      modal.classList.add('hidden');
+      
+      // Reset editing state
+      editingDomainId = null;
+    }
+    
+    function deleteDomain() {
+      const domain = getSelectedDomain();
+      if (!domain) return;
+      
+        // Stop all auto-checks for this domain's services
+        domain.services.forEach(service => {
+          if (service.autoCheck) {
+            stopAutoCheck(service.id);
+          }
+        });
+        
+        // Remove domain from the environment
+        const domains = getDomains();
+        const index = domains.findIndex(d => d.id === domain.id);
+        if (index !== -1) {
+          domains.splice(index, 1);
+        }
+        
+        // Reset selected domain if needed
+        if (domains.length > 0) {
+          getCurrentEnvData().selectedDomainId = domains[0].id;
+        } else {
+          getCurrentEnvData().selectedDomainId = null;
+        }
+        
+        saveState();
+        renderAll();
+      showGeneralMessage(`Domain "${domain.name}" removed successfully.`, 'success');
+    }
+    
+    // Service Modal Functions
+    function openServiceModal() {
+      console.log('openServiceModal called');
+      const modal = document.getElementById('service-modal');
+      
+      // Reset form
+      document.getElementById('service-form').reset();
+      
+      // Show modal
+      modal.classList.remove('hidden');
+    }
+    
+    function closeServiceModal() {
+      console.log('closeServiceModal called');
+      const modal = document.getElementById('service-modal');
+      
+      // Hide the modal
+      modal.classList.add('hidden');
+    }
+
+    async function checkAllServicesAndAnimate() {
+      console.log('[checkAllServicesAndAnimate] - Starting check for all services.');
+      const checkAllBtn = document.getElementById('check-all-btn');
+      const originalBtnContent = checkAllBtn.innerHTML;
+      checkAllBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> Checking...`;
+      checkAllBtn.disabled = true;
+
+      // Add 'checking' class to all service cards and clear previous states
+      document.querySelectorAll('.service-card').forEach(card => {
+        card.classList.add('checking');
+        card.classList.remove('success', 'error');
+      });
+
+      try {
+        const results = await checkAllServices(); // Call the actual check function
+        console.log('[checkAllServicesAndAnimate] - All services check results:', results);
+        results.forEach(result => {
+          // Using dataset.id for service cards instead of data-service-id
+          const serviceCard = document.querySelector(`.service-card[data-id="${result.id}"]`);
+          if (serviceCard) {
+            serviceCard.classList.remove('checking');
+            if (result.status === 'success') {
+              serviceCard.classList.add('success');
+          } else {
+              serviceCard.classList.add('error');
+          }
+        }
+      });
+      } catch (error) {
+        console.error('[checkAllServicesAndAnimate] - Error during service check:', error);
+        showGeneralMessage('An error occurred while checking services.', 'error');
+      } finally {
+        checkAllBtn.innerHTML = originalBtnContent;
+        checkAllBtn.disabled = false;
+        document.querySelectorAll('.service-card').forEach(card => {
+          card.classList.remove('checking');
+        });
+        console.log('[checkAllServicesAndAnimate] - Finished checking all services.');
+      }
+    }
+
+    async function checkAllApiSuitesAndAnimate() {
+      console.log('[checkAllApiSuitesAndAnimate] - Starting check for all API Suites.');
+      const apiSuites = getApiSuites();
+      if (apiSuites.length === 0) {
+        console.log('[checkAllApiSuitesAndAnimate] - No API suites to check.');
+        return;
+      }
+      
+      const spinner = document.createElement('span');
+      spinner.className = 'animate-spin rounded-full h-4 w-4 border-b-2 border-white';
+      const checkAllButton = document.getElementById('check-all-api-suites-btn');
+      const originalButtonHtml = checkAllButton.innerHTML;
+      checkAllButton.disabled = true;
+      checkAllButton.innerHTML = '';
+      checkAllButton.appendChild(spinner);
+      
+      try {
+        const checkPromises = apiSuites.map(suite => checkApiSuite(suite.id));
+        console.log('[checkAllApiSuitesAndAnimate] - Dispatching all API suite checks.');
+        await Promise.all(checkPromises);
+        console.log('[checkAllApiSuitesAndAnimate] - All API suite checks completed.');
+      } catch (error) {
+        console.error('[checkAllApiSuitesAndAnimate] - Error checking all API suites:', error);
+        // Optionally display a user-friendly error message here
+      } finally {
+        checkAllButton.disabled = false;
+        checkAllButton.innerHTML = originalButtonHtml;
+        console.log('[checkAllApiSuitesAndAnimate] - Button state reset.');
+      }
+    }
+    
+    // API Suite Modal Functions
+    let editingApiSuiteId = null; // New global variable to track API suite being edited
+    let copyingApiSuiteId = null; // New global variable to track API suite being copied
+
+    function openApiSuiteModal(apiSuiteId = null) {
+      console.log('openApiSuiteModal called with apiSuiteId:', apiSuiteId);
+      const modal = document.getElementById('api-suite-modal');
+      const titleEl = document.getElementById('api-suite-modal-title');
+      const nameInput = document.getElementById('api-suite-name');
+      const endpointsContainer = document.getElementById('api-endpoints-container');
+      
+      editingApiSuiteId = apiSuiteId;
+      copyingApiSuiteId = null; // Ensure we are not in copy mode
+
+      titleEl.textContent = apiSuiteId ? 'Edit API Suite' : 'Add API Suite';
+      document.getElementById('api-suite-form').reset();
+      endpointsContainer.innerHTML = ''; // Clear existing endpoints
+
+      if (apiSuiteId) {
+        const apiSuite = getApiSuites().find(s => s.id === apiSuiteId);
+        if (apiSuite) {
+          nameInput.value = apiSuite.name;
+          apiSuite.endpoints.forEach(endpoint => addEndpointField(endpoint));
+        }
+      }
+
+      if (endpointsContainer.children.length === 0) {
+        addEndpointField(); // Add at least one empty endpoint field for new or empty suites
+      }
+      
+      clearValidationErrors();
+      modal.classList.remove('hidden');
+    }
+    
+    function closeApiSuiteModal() {
+      console.log('closeApiSuiteModal called');
+      const modal = document.getElementById('api-suite-modal');
+      modal.classList.add('hidden');
+      editingApiSuiteId = null;
+    }
+    
+    function addEndpointField(endpoint = null) {
+      const container = document.getElementById('api-endpoints-container');
+      const endpointId = endpoint ? endpoint.id : generateId();
+      const endpointDiv = document.createElement('div');
+      endpointDiv.className = 'flex space-x-2 items-end';
+      endpointDiv.dataset.id = endpointId; // Store ID for easy lookup/removal
+      endpointDiv.innerHTML = `
+        <div class="flex-grow grid grid-cols-3 gap-2">
+          <div class="col-span-1">
+            <label for="endpoint-method-${endpointId}" class="block text-xs font-medium text-gray-500">Method</label>
+            <select id="endpoint-method-${endpointId}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label for="endpoint-path-${endpointId}" class="block text-xs font-medium text-gray-500">Path ({{hosturl}} is optional)</label>
+            <input type="text" id="endpoint-path-${endpointId}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm" placeholder="/configurations/inventory/reorders" value="${endpoint ? endpoint.path : ''}" required>
+          </div>
+        </div>
+        <button type="button" class="remove-endpoint-btn inline-flex items-center p-2 border border-transparent rounded-full shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+        </svg>
+        </button>
+      `;
+
+      // Set initial values if editing
+      if (endpoint) {
+        endpointDiv.querySelector(`#endpoint-method-${endpointId}`).value = endpoint.method;
+      }
+      
+      container.appendChild(endpointDiv);
+
+      // Add event listener for remove button
+      endpointDiv.querySelector('.remove-endpoint-btn').addEventListener('click', (e) => removeEndpointField(e.target.closest('.remove-endpoint-btn')));
+    }
+
+    function removeEndpointField(buttonElement) {
+      buttonElement.closest('.flex.space-x-2.items-end').remove();
+    }
+
+    function openCopyApiSuiteModal(apiSuiteId) {
+      console.log('openCopyApiSuiteModal called with apiSuiteId:', apiSuiteId);
+      const modal = document.getElementById('copy-api-suite-modal');
+      const suiteNameEl = document.getElementById('copy-suite-name');
+      const environmentsContainer = document.getElementById('copy-environments-container');
+      
+      copyingApiSuiteId = apiSuiteId;
+      editingApiSuiteId = null; // Ensure we are not in edit mode
+
+      const apiSuiteToCopy = getApiSuites().find(s => s.id === apiSuiteId);
+      if (!apiSuiteToCopy) {
+        console.error('API Suite to copy not found:', apiSuiteId);
+        return;
+      }
+      suiteNameEl.textContent = apiSuiteToCopy.name;
+      environmentsContainer.innerHTML = ''; // Clear existing checkboxes
+      
+      const currentEnv = getCurrentEnv();
+      const apiSuiteName = apiSuiteToCopy.name; // Get the name of the suite being copied
+
+      for (const envKey in state.environments) {
+        if (envKey !== currentEnv) {
+          const envHasDuplicate = state.environments[envKey].apiSuites.some(suite => suite.name === apiSuiteName);
+          
+          const envDiv = document.createElement('div');
+          envDiv.className = 'flex items-center';
+          
+          let checkboxHtml = `
+            <input type="checkbox" id="copy-to-${envKey}" name="copy-to-env" value="${envKey}" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"${envHasDuplicate ? ' disabled' : ''}>
+            <label for="copy-to-${envKey}" class="ml-2 block text-sm text-gray-900 capitalize">${envKey}</label>
+          `;
+          
+          if (envHasDuplicate) {
+            checkboxHtml += `<span class="ml-2 text-xs text-gray-500">(Already exists)</span>`;
+          }
+
+          envDiv.innerHTML = checkboxHtml;
+          environmentsContainer.appendChild(envDiv);
+        }
+      }
+      
+      clearValidationErrors();
+      modal.classList.remove('hidden');
+    }
+    
+    function closeCopyApiSuiteModal() {
+      console.log('closeCopyApiSuiteModal called');
+      const modal = document.getElementById('copy-api-suite-modal');
+      modal.classList.add('hidden');
+      copyingApiSuiteId = null;
+    }
+    
+    function copyApiSuiteToEnvironments() {
+      if (!copyingApiSuiteId) return;
+      
+      const apiSuiteToCopy = getApiSuites().find(s => s.id === copyingApiSuiteId);
+      if (!apiSuiteToCopy) return;
+      
+      const selectedEnvs = Array.from(document.querySelectorAll('input[name="copy-to-env"]:checked')).map(cb => cb.value);
+      
+      if (selectedEnvs.length === 0) {
+        showGeneralMessage('Please select at least one environment to copy to.', 'error');
+        return;
+      }
+      
+      // Deep copy the API suite to prevent reference issues
+      const copiedSuite = JSON.parse(JSON.stringify(apiSuiteToCopy));
+      
+      selectedEnvs.forEach(envKey => {
+        // Generate new IDs for the copied suite and its endpoints
+        const newSuite = { ...copiedSuite, id: generateId() };
+        newSuite.endpoints = newSuite.endpoints.map(ep => ({ ...ep, id: generateId(), lastCheck: null }));
+        
+        state.environments[envKey].apiSuites.push(newSuite);
+      });
+        
+        saveState();
+        renderAll();
+      closeCopyApiSuiteModal();
+      
+      const successMessage = document.createElement('div');
+      successMessage.className = 'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md fade-in z-50';
+      successMessage.innerHTML = `
+        <div class="flex items-center">
+          <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <p>API Suite copied successfully!</p>
+        </div>
+      `;
+      document.body.appendChild(successMessage);
+      setTimeout(() => {
+        successMessage.classList.add('opacity-0');
+        successMessage.style.transition = 'opacity 0.5s ease-in-out';
+        setTimeout(() => successMessage.remove(), 500);
+      }, 3000);
+    }
+    
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initial render
+      renderAll();
+      setupAutoChecks();
+      
+      // Environment switching
+      document.getElementById('beta-env').addEventListener('click', () => {
+        state.currentEnv = 'beta';
+        stopAllAutoChecks();
+        saveState();
+        renderAll();
+        updateStats(); // Update stats when switching environments
+        setupAutoChecks();
+      });
+      
+      document.getElementById('uat-env').addEventListener('click', () => {
+        state.currentEnv = 'uat';
+        stopAllAutoChecks();
+        saveState();
+        renderAll();
+        updateStats(); // Update stats when switching environments
+        setupAutoChecks();
+      });
+      
+      document.getElementById('live-env').addEventListener('click', () => {
+        state.currentEnv = 'production';
+        stopAllAutoChecks();
+        saveState();
+        renderAll();
+        updateStats(); // Update stats when switching environments
+        setupAutoChecks();
+      });
+      
+      // Domain selection
+      document.getElementById('domain-select').addEventListener('change', (e) => {
+        getCurrentEnvData().selectedDomainId = e.target.value;
+        stopAllAutoChecks();
+        saveState();
+        renderServices();
+        setupAutoChecks();
+      });
+      
+      // Domain modal
+      document.getElementById('add-domain-btn').addEventListener('click', function() {
+        console.log('Add domain button clicked');
+        openDomainModal();
+      });
+      
+      document.getElementById('edit-domain-btn').addEventListener('click', function() {
+        console.log('Edit domain button clicked');
+        const domain = getSelectedDomain();
+        if (domain) openDomainModal(domain.id);
+      });
+      
+      document.getElementById('delete-domain-btn').addEventListener('click', deleteDomain);
+      
+      document.getElementById('close-domain-modal').addEventListener('click', closeDomainModal);
+      document.getElementById('cancel-domain-btn').addEventListener('click', closeDomainModal);
+      
+      document.getElementById('show-token').addEventListener('change', (e) => {
+        document.getElementById('domain-token').type = e.target.checked ? 'text' : 'password';
+      });
+      
+      document.getElementById('domain-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        // Clear previous validation errors
+        clearValidationErrors();
+        
+        const nameInput = document.getElementById('domain-name');
+        const urlInput = document.getElementById('domain-url');
+        const tokenInput = document.getElementById('domain-token');
+        
+        const name = nameInput.value.trim();
+        let url = urlInput.value.trim();
+        const token = tokenInput.value.trim();
+        
+        // Validate name
+        if (!name) {
+          return showValidationError(nameInput, 'Domain name is required');
+        }
+        
+        // Validate URL
+        if (!url) {
+          return showValidationError(urlInput, 'Base URL is required');
+        }
+        
+        // Validate URL format
+        try {
+          new URL(url);
+        } catch (e) {
+          return showValidationError(urlInput, 'Please enter a valid URL (e.g., https://example.com)');
+        }
+        
+        // Ensure URL has no trailing slash
+        if (url.endsWith('/')) {
+          url = url.slice(0, -1);
+        }
+        
+        // Show saving indicator on button
+        const saveButton = document.getElementById('save-domain-btn');
+        const originalButtonText = saveButton.innerHTML;
+        saveButton.disabled = true;
+        saveButton.innerHTML = `
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Saving...
+        `;
+        
+        // Use setTimeout to simulate processing and show the animation
+        setTimeout(() => {
+          if (editingDomainId) {
+            // Update existing domain
+            const domain = getDomains().find(d => d.id === editingDomainId);
+            if (domain) {
+              domain.name = name;
+              domain.url = url;
+              domain.token = token;
+            }
+          } else {
+            // Add new domain
+            const newDomain = {
+              id: generateId(),
+              name,
+              url,
+              token,
+              services: []
+            };
+            
+            getDomains().push(newDomain);
+            getCurrentEnvData().selectedDomainId = newDomain.id;
+          }
+          
+          saveState();
+          renderAll();
+          
+          // Show success message
+          const successMessage = document.createElement('div');
+          successMessage.className = 'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md fade-in z-50';
+          successMessage.innerHTML = `
+            <div class="flex items-center">
+              <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <p>${editingDomainId ? 'Domain updated successfully' : 'Domain added successfully'}</p>
+            </div>
+          `;
+          document.body.appendChild(successMessage);
+          
+          // Remove success message after 3 seconds
+          setTimeout(() => {
+            successMessage.classList.add('opacity-0');
+            successMessage.style.transition = 'opacity 0.5s ease-in-out';
+            setTimeout(() => successMessage.remove(), 500);
+          }, 3000);
+          
+          closeDomainModal();
+        }, 500); // Simulate a short delay for better UX
+      });
+      
+      // Add event listeners for general buttons
+      document.getElementById('check-all-btn').addEventListener('click', checkAllServicesAndAnimate);
+      
+      // Service modal
+      document.getElementById('add-service-btn').addEventListener('click', () => {
+        if (!getSelectedDomain()) {
+          showGeneralMessage('Please add a domain first', 'error');
+          return;
+        }
+        openServiceModal();
+      });
+      
+      document.getElementById('empty-add-service-btn').addEventListener('click', () => {
+        if (!getSelectedDomain()) {
+          showGeneralMessage('Please add a domain first', 'error');
+          return;
+        }
+        openServiceModal();
+      });
+      
+      document.getElementById('close-service-modal').addEventListener('click', closeServiceModal);
+      document.getElementById('cancel-service-btn').addEventListener('click', closeServiceModal);
+      
+      document.getElementById('service-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const domain = getSelectedDomain();
+        if (!domain) return;
+        
+        const nameInput = document.getElementById('service-name');
+        const methodSelect = document.getElementById('service-method');
+        const pathInput = document.getElementById('service-path');
+        const autoCheckInput = document.getElementById('service-auto-check');
+        
+        const name = nameInput.value.trim();
+        const method = methodSelect.value;
+        let path = pathInput.value.trim();
+        const autoCheck = autoCheckInput.checked;
+        
+        // Validate inputs
+        if (!name || !path) {
+          showGeneralMessage('Name and path are required', 'error');
+          return;
+        }
+        
+        // Ensure path starts with a slash
+        if (!path.startsWith('/')) {
+          path = '/' + path;
+        }
+        
+        // Create new service
+        const newService = {
+          id: generateId(),
+          name,
+          method,
+          path,
+          autoCheck,
+          lastCheck: null
+        };
+        
+        domain.services.push(newService);
+        saveState();
+        renderServices();
+        closeServiceModal();
+        
+        // Start auto-check if enabled
+        if (autoCheck) {
+          startAutoCheck(newService.id);
+        }
+        
+        // Perform initial check
+        checkService(newService.id);
+      });
+      
+      // API Suite buttons
+      document.getElementById('add-api-suite-btn').addEventListener('click', () => openApiSuiteModal());
+      document.getElementById('empty-add-api-suite-btn').addEventListener('click', () => openApiSuiteModal());
+      document.getElementById('close-api-suite-modal').addEventListener('click', closeApiSuiteModal);
+      document.getElementById('cancel-api-suite-btn').addEventListener('click', closeApiSuiteModal);
+      document.getElementById('add-endpoint-btn').addEventListener('click', () => addEndpointField());
+
+      document.getElementById('check-all-api-suites-btn').addEventListener('click', checkAllApiSuitesAndAnimate);
+      document.getElementById('copy-api-suite-modal').addEventListener('click', (e) => {
+        // Close modal when clicking outside content
+        if (e.target.id === 'copy-api-suite-modal') {
+          closeCopyApiSuiteModal();
+        }
+      });
+      document.getElementById('close-copy-api-suite-modal').addEventListener('click', closeCopyApiSuiteModal);
+      document.getElementById('cancel-copy-api-suite-btn').addEventListener('click', closeCopyApiSuiteModal);
+      document.getElementById('perform-copy-api-suite-btn').addEventListener('click', copyApiSuiteToEnvironments);
+
+      // Notification settings modal listeners
+      document.getElementById('notification-settings-btn').addEventListener('click', openNotificationSettingsModal);
+      document.getElementById('close-notification-settings-modal').addEventListener('click', closeNotificationSettingsModal);
+      document.getElementById('save-notification-settings-btn').addEventListener('click', saveNotificationSettings);
+      document.getElementById('notification-settings-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'notification-settings-modal') {
+          closeNotificationSettingsModal();
+        }
+      });
+
+      // Tax Calculator Event Listeners
+      document.getElementById('tax-inc-price').addEventListener('input', calculateTaxes);
+      document.getElementById('discount-rate').addEventListener('input', calculateTaxes);
+      document.querySelectorAll('input[name="calc-method"]').forEach(radio => {
+        radio.addEventListener('change', calculateTaxes);
+      });
+      document.getElementById('add-tax-rate-btn').addEventListener('click', () => addTaxInputField());
+      renderTaxInputs(); // Initial render for tax inputs and calculation
+
+      // Load initial data for tax calculator
+      // loadItems(); // Remove initial call
+      loadTaxes();
+      loadDiscounts();
+
+      // Item search listener
+      document.getElementById('search-item-button').addEventListener('click', () => {
+        console.log('[search-item-button] clicked'); // Add this line
+        const searchTerm = document.getElementById('item-search-input').value;
+        if (searchTerm) {
+          console.log('[search-item-button] Searching for:', searchTerm); // Add this line
+          loadItems(searchTerm);
+        } else {
+          console.log('[search-item-button] No search term entered.'); // Add this line
+          const itemSelect = document.getElementById('item-select');
+          itemSelect.innerHTML = '<option value="">Please enter a search term</option>';
+          itemSelect.disabled = true;
+        }
+      });
+
+      // Item selection listener
+      document.getElementById('item-select').addEventListener('change', (e) => {
+        const selectedItemId = e.target.value;
+        const selectedItem = allItems.find(item => item.id === selectedItemId);
+        if (selectedItem) {
+          document.getElementById('tax-inc-price').value = selectedItem.sellingPrice || 0;
+          // Clear existing tax rates and add item's taxes
+          document.getElementById('tax-rates-container').innerHTML = '';
+          if (selectedItem.taxRates && selectedItem.taxRates.length > 0) {
+            selectedItem.taxRates.forEach(itemTaxRate => {
+              const matchedTax = allTaxes.find(tax => tax.taxID === itemTaxRate.taxID);
+              if (matchedTax) {
+                if (matchedTax.tax1 && matchedTax.tax1.rate && matchedTax.tax1.rate.value) {
+                  addTaxInputField(matchedTax.tax1.rate.value);
+                }
+                if (matchedTax.tax2 && matchedTax.tax2.rate && matchedTax.tax2.rate.value) {
+                  addTaxInputField(matchedTax.tax2.rate.value);
+                }
+                // Add more tax fields (tax3, tax4, etc.) if they exist in the matchedTax object
+                // You might need to extend this logic based on your tax structure
+              }
+            });
+          } else {
+            addTaxInputField(); // Add a default empty tax field if no taxes on item
+          }
+          calculateTaxes();
+        }
+      });
+
+      // Discount selection listener
+      document.getElementById('discount-select').addEventListener('change', (e) => {
+        const selectedDiscountId = e.target.value;
+        const discountRateInput = document.getElementById('discount-rate');
+        
+        if (selectedDiscountId) {
+          const selectedDiscount = allDiscounts.find(d => d.id == selectedDiscountId);
+          if (selectedDiscount) {
+            if (selectedDiscount.discountType === 'percentage') {
+              discountRateInput.value = selectedDiscount.rate;
+            } else if (selectedDiscount.discountType === 'amount') {
+              // For amount-based discounts, we need to convert to percentage for the input field
+              // This is a simplification; a more robust solution might handle amount discounts differently
+              const taxIncPrice = parseFloat(document.getElementById('tax-inc-price').value) || 0;
+              if (taxIncPrice > 0) {
+                discountRateInput.value = (selectedDiscount.rate / taxIncPrice * 100).toFixed(2);
+              } else {
+                discountRateInput.value = 0;
+              }
+            }
+          }
+        } else {
+          discountRateInput.value = 0; // Reset if no discount selected
+        }
+        calculateTaxes();
+      });
+    });
+  </script>
+</body>
+</html>
