@@ -340,15 +340,109 @@
       </div>
     </main>
 
-    <!-- Main Content -->
-    <div class="py-8 bg-gray-50">
-      <!-- Footer -->
-      <footer class="bg-white border-t border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p class="text-center text-sm text-gray-500">Website Automation Dashboard | Running on localhost</p>
+    <!-- Tax Calculator Section -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-2xl font-semibold text-gray-900 mb-6">Tax Calculator</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Input Section -->
+          <div class="space-y-4">
+            <div>
+              <label for="tax-inc-price" class="block text-sm font-medium text-gray-700">Tax-Inclusive Price</label>
+              <input type="number" id="tax-inc-price" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm" placeholder="100.00" step="0.01" value="100.00">
+            </div>
+
+            <div>
+              <label for="item-select" class="block text-sm font-medium text-gray-700">Select Item</label>
+              <div class="flex items-center space-x-2">
+                <select id="item-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm">
+                  <option value="">Search and select an item</option>
+                </select>
+                <button id="search-item-btn" class="p-2 border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label for="discount-rate" class="block text-sm font-medium text-gray-700">Discount (%)</label>
+              <input type="number" id="discount-rate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm" placeholder="0" value="0">
+            </div>
+
+            <div>
+              <label for="discount-select" class="block text-sm font-medium text-gray-700">Select Discount</label>
+              <select id="discount-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm">
+                <option value="">Select a promotion discount</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tax Rates (%)</label>
+              <div id="tax-rates-container" class="space-y-2"></div>
+              <button id="add-tax-rate-btn" class="mt-2 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Tax Rate
+              </button>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Calculation Method</label>
+              <div class="flex space-x-4">
+                <label class="inline-flex items-center">
+                  <input type="radio" name="calc-method" value="zeropos" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" checked>
+                  <span class="ml-2 text-sm text-gray-900">ZeroPOS, 6IXPOS, SERVIO</span>
+                </label>
+                <label class="inline-flex items-center">
+                  <input type="radio" name="calc-method" value="kiosk" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                  <span class="ml-2 text-sm text-gray-900">KIOSK</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Output Section -->
+          <div class="bg-gray-50 p-6 rounded-md shadow-inner space-y-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Calculation Results</h3>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Original Tax-Inclusive Price:</span>
+              <span id="result-original-tax-inc-price" class="text-sm font-medium text-gray-900">$0.00</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Discount Amount:</span>
+              <span id="result-discount-amount" class="text-sm font-medium text-gray-900">$0.00</span>
+            </div>
+            <div class="flex justify-between items-center font-semibold text-gray-800 border-t border-gray-200 pt-3 mt-3">
+              <span class="text-sm">Price After Discount (Tax-Inclusive):</span>
+              <span id="result-price-after-discount-tax-inc" class="text-sm">$0.00</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Total Tax Exclusive Price:</span>
+              <span id="result-tax-exclusive-price" class="text-sm font-medium text-gray-900">$0.00</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">Total Tax:</span>
+              <span id="result-total-tax" class="text-sm font-medium text-gray-900">$0.00</span>
+            </div>
+            <div class="flex justify-between items-center font-bold text-lg text-indigo-700 border-t border-gray-200 pt-3 mt-3">
+              <span>Subtotal:</span>
+              <span id="result-subtotal">$0.00</span>
+            </div>
+          </div>
         </div>
-      </footer>
+      </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <p class="text-center text-sm text-gray-500">Website Automation Dashboard | Running on localhost</p>
+      </div>
+    </footer>
   </div>
 
   <!-- Add/Edit Domain Modal -->  
@@ -665,8 +759,7 @@
 
       // Get taxes to apply: from selected item or manually entered
       let taxesToApply = [];
-      const itemSelectElement = document.getElementById('item-select');
-      const selectedItemId = itemSelectElement ? itemSelectElement.value : ''; // Safe access
+      const selectedItemId = document.getElementById('item-select').value;
       const selectedItem = allItems.find(item => item.id === selectedItemId);
 
       if (selectedItem && selectedItem.taxRates && selectedItem.taxRates.length > 0) {
@@ -758,11 +851,10 @@
 
       calculateTaxes(); // Recalculate after adding a new input
     }
-  </script>
-  <script>
-    let allItems = [];
-    let allTaxes = [];
-    let allDiscounts = [];
+
+    let allItems = []; // Store all fetched items
+    let allTaxes = []; // Store all fetched taxes
+    let allDiscounts = []; // Store all fetched discounts
 
     // Helper function to fetch data from proxy
     async function fetchFromProxy(url) {
@@ -796,25 +888,14 @@
       }
     }
 
-    async function loadItems(searchTerm = '') {
-      console.log('[loadItems] function called with searchTerm:', searchTerm); // Add this line
+    async function loadItems() {
       const itemSelect = document.getElementById('item-select');
-      const searchItemBtn = document.getElementById('search-item-button'); // Updated ID
-      itemSelect.innerHTML = '<option value="">Searching...</option>'; // Updated text
+      const searchItemBtn = document.getElementById('search-item-btn');
+      itemSelect.innerHTML = '<option value="">Loading items...</option>';
       itemSelect.disabled = true;
       searchItemBtn.disabled = true; // Disable search button during loading
 
-      let url = 'https://betaaccount.retailcloud.com/console/catalog/items';
-      if (searchTerm) {
-        // Check if searchTerm is purely numeric (for itemID search)
-        if (!isNaN(searchTerm) && !isNaN(parseFloat(searchTerm))) {
-          url = `https://betaaccount.retailcloud.com/console/catalog/items?itemID=${encodeURIComponent(searchTerm)}`;
-        } else {
-          url = `https://betaaccount.retailcloud.com/console/catalog/items?name=${encodeURIComponent(searchTerm)}`;
-        }
-      }
-      console.log('[loadItems] Fetching from URL:', url);
-      const itemsData = await fetchFromProxy(url);
+      const itemsData = await fetchFromProxy('https://betaaccount.retailcloud.com/console/catalog/items');
       console.log('[loadItems] - Raw itemsData from API:', itemsData);
 
       let actualItemsData = [];
@@ -822,16 +903,11 @@
         actualItemsData = itemsData;
       } else if (itemsData && Array.isArray(itemsData.data)) {
         actualItemsData = itemsData.data;
-      } else if (itemsData && itemsData.data && Array.isArray(itemsData.data.data)) {
-        actualItemsData = itemsData.data.data;
       } else if (itemsData && Array.isArray(itemsData.items)) {
         actualItemsData = itemsData.items;
       } else {
         console.warn('[loadItems] - Items data is not in an expected array format.', itemsData);
       }
-
-      // Clear previous options
-      itemSelect.innerHTML = ''; 
 
       if (actualItemsData.length > 0) {
         allItems = actualItemsData;
@@ -843,12 +919,13 @@
           itemSelect.appendChild(option);
         });
         itemSelect.disabled = false;
+        searchItemBtn.disabled = false; // Re-enable search button
       } else {
         allItems = [];
         itemSelect.innerHTML = '<option value="">No items found</option>';
         itemSelect.disabled = true;
+        searchItemBtn.disabled = false; // Re-enable search button even if no items
       }
-      searchItemBtn.disabled = false; // Re-enable search button
     }
 
     async function loadTaxes() {
@@ -887,10 +964,9 @@
     }
   </script>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Storage key for local storage
-      const STORAGE_KEY = 'website-automation-data';
-
+    // Storage key for local storage
+    const STORAGE_KEY = 'website-automation-data';
+    
     // Default state
     const defaultState = {
       currentEnv: 'beta',
@@ -1835,6 +1911,9 @@
       const domain = getSelectedDomain();
       if (!domain) return;
       
+      const index = domain.services.findIndex(s => s.id === serviceId);
+      if (index === -1) return;
+      
         stopAutoCheck(serviceId);
         domain.services.splice(index, 1);
         saveState();
@@ -2475,24 +2554,9 @@ let editingDomainId = null;
       renderTaxInputs(); // Initial render for tax inputs and calculation
 
       // Load initial data for tax calculator
-      // loadItems(); // Remove initial call
+      loadItems();
       loadTaxes();
       loadDiscounts();
-
-      // Item search listener
-      document.getElementById('search-item-button').addEventListener('click', () => {
-        console.log('[search-item-button] clicked'); // Add this line
-        const searchTerm = document.getElementById('item-search-input').value;
-        if (searchTerm) {
-          console.log('[search-item-button] Searching for:', searchTerm); // Add this line
-          loadItems(searchTerm);
-        } else {
-          console.log('[search-item-button] No search term entered.'); // Add this line
-          const itemSelect = document.getElementById('item-select');
-          itemSelect.innerHTML = '<option value="">Please enter a search term</option>';
-          itemSelect.disabled = true;
-        }
-      });
 
       // Item selection listener
       document.getElementById('item-select').addEventListener('change', (e) => {
@@ -2523,6 +2587,9 @@ let editingDomainId = null;
         }
       });
 
+      // Search item button listener (reloads items, useful if data changes or for initial load)
+      document.getElementById('search-item-btn').addEventListener('click', loadItems);
+
       // Discount selection listener
       document.getElementById('discount-select').addEventListener('change', (e) => {
         const selectedDiscountId = e.target.value;
@@ -2548,6 +2615,108 @@ let editingDomainId = null;
           discountRateInput.value = 0; // Reset if no discount selected
         }
         calculateTaxes();
+      });
+
+      document.getElementById('api-suite-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const nameInput = document.getElementById('api-suite-name');
+        const endpointsContainer = document.getElementById('api-endpoints-container');
+        const name = nameInput.value.trim();
+
+        clearValidationErrors();
+
+        if (!name) {
+          return showValidationError(nameInput, 'API Suite name is required');
+        }
+
+        const endpoints = [];
+        let hasError = false;
+        Array.from(endpointsContainer.children).forEach(endpointDiv => {
+          const methodSelect = endpointDiv.querySelector('select');
+          const pathInput = endpointDiv.querySelector('input[type="text"]');
+
+          const method = methodSelect.value;
+          let path = pathInput.value.trim();
+
+          if (!path) {
+            showValidationError(pathInput, 'Endpoint path is required');
+            hasError = true;
+            return;
+          }
+
+          // Ensure path starts with a slash if it's not a full URL with {{hosturl}}
+          if (!path.startsWith('/') && !path.startsWith('{{hosturl}}')) {
+            path = '/' + path;
+          }
+
+          endpoints.push({
+            id: endpointDiv.dataset.id,
+            method,
+            path,
+            lastCheck: null // Reset lastCheck when saving new/edited suite
+          });
+        });
+
+        if (hasError) return;
+
+        if (endpoints.length === 0) {
+          showGeneralMessage('Please add at least one endpoint to the API Suite.', 'error');
+          return;
+        }
+
+        const saveButton = document.getElementById('save-api-suite-btn');
+        const originalButtonHtml = saveButton.innerHTML;
+        saveButton.disabled = true;
+        saveButton.innerHTML = `
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Saving...
+        `;
+
+        setTimeout(() => {
+          if (editingApiSuiteId) {
+            const apiSuite = getApiSuites().find(s => s.id === editingApiSuiteId);
+            if (apiSuite) {
+              apiSuite.name = name;
+              apiSuite.endpoints = endpoints;
+            }
+          } else {
+            const newApiSuite = {
+              id: generateId(),
+              name,
+              endpoints
+            };
+            getApiSuites().push(newApiSuite);
+          }
+          saveState();
+          renderApiSuites();
+
+          const successMessage = document.createElement('div');
+          successMessage.className = 'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md fade-in z-50';
+          successMessage.innerHTML = `
+            <div class="flex items-center">
+              <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <p>${editingApiSuiteId ? 'API Suite updated successfully' : 'API Suite added successfully'}</p>
+            </div>
+          `;
+          document.body.appendChild(successMessage);
+          setTimeout(() => {
+            successMessage.classList.add('opacity-0');
+            successMessage.style.transition = 'opacity 0.5s ease-in-out';
+            setTimeout(() => successMessage.remove(), 500);
+          }, 3000);
+          closeApiSuiteModal();
+          
+          // Perform initial check for new/updated suite
+          if (!editingApiSuiteId) {
+            checkApiSuite(getApiSuites()[getApiSuites().length - 1].id);
+          }
+        }, 500);
       });
     });
   </script>
