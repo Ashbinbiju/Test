@@ -165,8 +165,8 @@
     .hover\:bg-gray-900:hover { background-color: #111827; }
     .focus\:ring-gray-500:focus { --tw-ring-color: #6b7280; }
 
-    .bg-blue-500 { background-color: #3b82f6; } /* Blue for edit button */
-    .hover\:bg-blue-600:hover { background-color: #2563eb; }
+    .bg-blue-600 { background-color: #2563eb; } /* Blue for transaction button */
+    .hover\:bg-blue-700:hover { background-color: #1d4ed8; }
     .focus\:ring-blue-500:focus { --tw-ring-color: #60a5fa; }
   </style>
 </head>
@@ -272,6 +272,13 @@
               <p class="mt-1 text-xs text-gray-500">Each domain stores its own Bearer token for authentication</p>
             </div>
             <div class="flex space-x-2">
+              <button id="create-transaction-btn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16V4H4zm0 0L20 20" />
+                </svg>
+                Create Transaction
+              </button>
               <button id="add-service-btn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -611,6 +618,30 @@
         <button type="button" id="save-notification-settings-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors btn-primary">
           Save Settings
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transaction Status Modal -->
+  <div id="transaction-status-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+      <div class="flex justify-between items-center p-4 border-b">
+        <h3 class="text-lg font-medium text-gray-900">Transaction Creation Status</h3>
+        <button id="close-transaction-status-modal" class="text-gray-400 hover:text-gray-500">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="p-6">
+        <div id="transaction-status-log" class="bg-gray-900 text-white font-mono text-xs rounded-md p-4 h-96 overflow-y-auto">
+          <p>Starting transaction process...</p>
+        </div>
+      </div>
+      <div class="p-4 bg-gray-50 border-t flex justify-end">
+          <button id="finish-transaction-status-btn" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Close
+          </button>
       </div>
     </div>
   </div>
@@ -1574,7 +1605,7 @@
     }
 
     // Domain Modal Functions
-let editingDomainId = null;
+    let editingDomainId = null;
     
     function openDomainModal(domainId = null) {
       console.log('openDomainModal called with domainId:', domainId);
@@ -1930,6 +1961,239 @@ let editingDomainId = null;
         setTimeout(() => successMessage.remove(), 500);
       }, 3000);
     }
+
+    // --- START: NEW TRANSACTION CREATION CODE ---
+
+    // Cache for transaction-related data (items, taxes, etc.)
+    const transactionDataCache = {
+        items: { data: [], timestamp: 0 },
+        taxes: { data: [], timestamp: 0 },
+        registers: { data: [], timestamp: 0 },
+        events: { data: [], timestamp: 0 },
+        customers: { data: [], timestamp: 0 },
+    };
+    const successfulSales = []; // In-memory store of successful sales for refunds
+
+    // Helper to log messages to the new modal
+    function logToModal(message, type = 'info') {
+        const logContainer = document.getElementById('transaction-status-log');
+        const p = document.createElement('p');
+        const timestamp = new Date().toLocaleTimeString();
+        let colorClass = 'text-gray-300';
+        if (type === 'success') colorClass = 'text-green-400';
+        if (type === 'error') colorClass = 'text-red-400';
+        if (type === 'warn') colorClass = 'text-yellow-400';
+        
+        p.className = colorClass;
+        p.innerHTML = `<span class="text-cyan-400">[${timestamp}]</span> ${message}`;
+        logContainer.appendChild(p);
+        logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll
+    }
+
+    function openTransactionStatusModal() {
+        document.getElementById('transaction-status-log').innerHTML = '';
+        logToModal('Starting transaction process...');
+        document.getElementById('transaction-status-modal').classList.remove('hidden');
+    }
+
+    function closeTransactionStatusModal() {
+        document.getElementById('transaction-status-modal').classList.add('hidden');
+    }
+
+    // Generic function to fetch data needed for transactions
+    async function fetchTransactionData(dataType) {
+        const CACHE_DURATION_MS = 3600 * 1000; // 1 hour cache
+        const domain = getSelectedDomain();
+        
+        // Check cache first
+        const cache = transactionDataCache[dataType];
+        if (cache.data.length > 0 && (Date.now() - cache.timestamp < CACHE_DURATION_MS)) {
+            logToModal(`Using cached ${dataType}.`);
+            return cache.data;
+        }
+
+        const config = {
+            items: { path: '/console/catalog/items?status=Active&pagination=false', process: (d) => d.data },
+            taxes: { path: '/console/catalog/taxes?', process: (d) => d },
+            registers: { path: '/console/business/registers?status=Active&pagination=false', process: (d) => d },
+            events: { path: '/console/entertainments/events?status=OPEN&pagination=false&sortBy=endDate.ASC', process: (d) => d },
+            customers: { path: '/console/crm/customers?status=G&pagination=false', process: (d) => d },
+        };
+
+        if (!config[dataType]) throw new Error(`Unknown data type: ${dataType}`);
+
+        logToModal(`Fetching ${dataType}...`);
+        const response = await fetch('/api/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: `${domain.url}${config[dataType].path}`,
+                method: 'GET',
+                headers: { Authorization: `Bearer ${domain.token}` }
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to fetch ${dataType}: ${response.status} ${errorText}`);
+        }
+
+        const json = await response.json();
+        const processedData = config[dataType].process(json.data); // Assuming proxy wraps data
+        
+        if (!processedData || (Array.isArray(processedData) && processedData.length === 0)) {
+            throw new Error(`No valid ${dataType} found.`);
+        }
+
+        logToModal(`Successfully fetched ${processedData.length} ${dataType}.`, 'success');
+        cache.data = processedData;
+        cache.timestamp = Date.now();
+        return cache.data;
+    }
+
+    // Port of Python's create_sale_payload
+    function createSalePayloadJS(selectedItems, eventId, payModeId, registerInfo, taxes, customers) {
+        const PAY_MODES = { 1: "Cash", 2: "Credit", 3: "Debit", 4: "Check", 5: "Gift" };
+        const MERCHANT = { "domain": "JV", "id": 1161362, "merchantID": 1161362 };
+        
+        let lineItems = [];
+        let totalAmount = 0.0;
+        let totalTax = 0.0;
+        const customer = customers.length > 0 ? customers[Math.floor(Math.random() * customers.length)] : null;
+
+        selectedItems.forEach((item, index) => {
+            const unitPrice = parseFloat(item.sellingPrice || 0);
+            totalAmount += unitPrice;
+            
+            const taxConfig = taxes[Math.min(index, taxes.length - 1)];
+            const rate1 = (taxConfig.tax1?.rate?.value || 0) / 100.0;
+            const rate2 = (taxConfig.tax2?.rate?.value || 0) / 100.0;
+            
+            const rate1Amount = unitPrice * rate1;
+            const rate2Amount = unitPrice * rate2;
+            const itemTax = rate1Amount + rate2Amount;
+            totalTax += itemTax;
+
+            lineItems.push({
+                id: { itemID: item.itemID, sequence: index + 1, type: "SALE" },
+                item: { itemID: item.itemID, name: item.name, upc: item.upc },
+                appliedTax: {
+                    details: { ...taxConfig, id: taxConfig.taxID },
+                    id: taxConfig.taxID,
+                    rate1Amount: parseFloat(rate1Amount.toFixed(2)),
+                    rate2Amount: parseFloat(rate2Amount.toFixed(2)),
+                    total: parseFloat(itemTax.toFixed(2))
+                },
+                merchant: MERCHANT,
+                quantity: 1.0,
+                total: parseFloat(unitPrice.toFixed(2)),
+                totalTax: parseFloat(itemTax.toFixed(2)),
+                unitPrice: parseFloat(unitPrice.toFixed(2)),
+                unitCost: parseFloat(item.costPrice || 0)
+            });
+        });
+
+        const payload = {
+            type: "SALE",
+            mode: { payModeID: payModeId, description: PAY_MODES[payModeId] },
+            lineItems: lineItems,
+            payments: [{
+                id: { sequence: 1, type: "SALE" },
+                amount: parseFloat((totalAmount + totalTax).toFixed(2)),
+                mode: { payModeID: payModeId, description: PAY_MODES[payModeId] }
+            }],
+            register: { registerID: registerInfo.registerID },
+            store: { storeID: registerInfo.storeID },
+            venue: { venueID: registerInfo.venueID },
+            isTaxExempt: false,
+            subtotal: parseFloat(totalAmount.toFixed(2)),
+            totalTaxes: parseFloat(totalTax.toFixed(2)),
+            totalAmount: parseFloat((totalAmount + totalTax).toFixed(2)),
+            paidAmount: parseFloat((totalAmount + totalTax).toFixed(2)),
+        };
+        
+        if (customer && customer.customerNumber) payload.customer = { customerNumber: customer.customerNumber };
+        if (eventId) payload.event = { id: eventId };
+
+        return payload;
+    }
+
+    // Function to post the final transaction
+    async function postTransaction(payload) {
+        const domain = getSelectedDomain();
+        logToModal(`Posting ${payload.type} transaction...`);
+
+        const response = await fetch('/api/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: `${domain.url}/console/transactions`,
+                method: 'POST',
+                headers: { 
+                    Authorization: `Bearer ${domain.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload) // The actual payload needs to be stringified inside the proxy body
+            })
+        });
+        
+        const responseBody = await response.json();
+        if (!response.ok) {
+            throw new Error(`Transaction failed: ${response.status} - ${JSON.stringify(responseBody.data)}`);
+        }
+        
+        return responseBody.data;
+    }
+
+
+    // Main function triggered by the button click
+    async function createRandomTransaction() {
+        openTransactionStatusModal();
+        try {
+            const items = await fetchTransactionData('items');
+            const taxes = await fetchTransactionData('taxes');
+            const registers = await fetchTransactionData('registers');
+            const events = await fetchTransactionData('events');
+            const customers = await fetchTransactionData('customers');
+
+            // For now, we will only implement SALE, as REFUND depends on prior sales.
+            const transactionType = 'SALE'; // Can be expanded later
+            logToModal(`Preparing to create a ${transactionType} transaction.`);
+
+            if (transactionType === 'SALE') {
+                const numItems = Math.floor(Math.random() * 3) + 1; // 1 to 3 items
+                const availableItems = items.filter(i => i.sellingPrice > 0);
+                if(availableItems.length < numItems) throw new Error("Not enough available items to create a sale.");
+
+                const selectedItems = [...availableItems].sort(() => 0.5 - Math.random()).slice(0, numItems);
+                logToModal(`Selected ${selectedItems.length} item(s): ${selectedItems.map(i => i.name).join(', ')}`);
+                
+                const registerInfo = registers[Math.floor(Math.random() * registers.length)];
+                const eventId = events.length > 0 ? events[Math.floor(Math.random() * events.length)].id : null;
+                const payModeId = Math.floor(Math.random() * 5) + 1; // 1-5
+
+                const payload = createSalePayloadJS(selectedItems, eventId, payModeId, registerInfo, taxes, customers);
+                logToModal('Sale payload created. <pre class="whitespace-pre-wrap">' + escapeHtml(JSON.stringify(payload, null, 2)) + '</pre>');
+                
+                const result = await postTransaction(payload);
+                const transactionNumber = result?.lineItems?.[0]?.id?.transactionNumber || 'N/A';
+                
+                logToModal(`SALE successful! Transaction Number: ${transactionNumber}`, 'success');
+                showGeneralMessage(`Sale created successfully! Txn #: ${transactionNumber}`, 'success');
+
+            } else {
+                // TODO: Implement REFUND logic
+                logToModal('REFUND logic not yet implemented in UI.', 'warn');
+            }
+
+        } catch (error) {
+            console.error("Transaction Creation Error:", error);
+            logToModal(`ERROR: ${error.message}`, 'error');
+            showGeneralMessage(`Transaction failed: ${error.message}`, 'error');
+        }
+    }
+    
+    // --- END: NEW TRANSACTION CREATION CODE ---
     
     // Event Listeners
     document.addEventListener('DOMContentLoaded', () => {
@@ -2303,6 +2567,29 @@ let editingDomainId = null;
           saveButton.innerHTML = originalButtonHtml;
         }, 500); // Simulate a short delay for better UX
       });
+
+      // New Listeners for Transaction functionality
+      document.getElementById('create-transaction-btn').addEventListener('click', async () => {
+          const btn = document.getElementById('create-transaction-btn');
+          const domain = getSelectedDomain();
+
+          if (!domain || !domain.token) {
+              showGeneralMessage('Please select a domain with a valid Bearer Token.', 'error');
+              return;
+          }
+
+          const originalContent = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = `<svg class="animate-spin h-3.5 w-3.5 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...`;
+
+          await createRandomTransaction(); // This function now opens the modal itself
+
+          btn.disabled = false;
+          btn.innerHTML = originalContent;
+      });
+
+      document.getElementById('close-transaction-status-modal').addEventListener('click', closeTransactionStatusModal);
+      document.getElementById('finish-transaction-status-btn').addEventListener('click', closeTransactionStatusModal);
     });
   </script>
 </body>
