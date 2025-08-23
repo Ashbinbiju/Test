@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZeroPOS Tax Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --background: #0a0a0a;
+            --surface: #111111;
+            --surface-elevated: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #a3a3a3;
+            --text-muted: #737373;
+            --border: rgba(255,255,255,0.1);
+            --border-focus: rgba(99,102,241,0.5);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --glass: rgba(255,255,255,0.05);
+            --glass-border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(99,102,241,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139,92,246,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(6,182,212,0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .header {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 4rem 2rem;
+            background: linear-gradient(135deg, var(--glass) 0%, rgba(255,255,255,0.02) 100%);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: brightness(1) drop-shadow(0 0 20px rgba(99,102,241,0.3)); }
+            to { filter: brightness(1.1) drop-shadow(0 0 30px rgba(99,102,241,0.5)); }
+        }
+
+        .header p { font-size: 1.2rem; color: var(--text-secondary); font-weight: 300; letter-spacing: 0.5px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; position: relative; z-index: 1; }
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 2rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.75rem; }
+        .card-title i { color: var(--primary); font-size: 1.2rem; }
+        .scenario-selector { margin-bottom: 2.5rem; }
+        .scenario-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        
+        .scenario-option { position: relative; } /* Wrapper for input and label */
+        
+        .scenario-card {
+            display: block; /* Make the label fill the space */
+            padding: 1.5rem;
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            background: rgba(255,255,255,0.02);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .scenario-option input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+
+        .scenario-option:hover .scenario-card {
+            border-color: var(--primary);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 32px rgba(99,102,241,0.2);
+        }
+
+        .scenario-option input:checked + .scenario-card {
+            border-color: var(--primary);
+            box-shadow: 0 8px 32px rgba(99,102,241,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .scenario-title { font-weight: 600; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .scenario-badge { font-size: 0.7rem; padding: 0.2rem 0.5rem; background: var(--primary); color: white; border-radius: 8px; font-weight: 500; }
+        .scenario-description { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .form-group { position: relative; }
+        .form-group.hidden { display: none; }
+        .floating-label {
+            position: absolute; top: 0; left: 3rem; font-size: 0.875rem; color: var(--text-muted);
+            pointer-events: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(1rem); background: var(--surface); padding: 0 0.5rem; z-index: 2;
+        }
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .input-icon { position: absolute; left: 1rem; color: var(--text-muted); font-size: 1.1rem; z-index: 2; transition: color 0.3s ease; }
+        .modern-input {
+            width: 100%; padding: 1rem 1rem 1rem 3rem; background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border); border-radius: 12px; font-size: 1rem;
+            color: var(--text-primary); font-family: 'Inter', sans-serif;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(10px);
+        }
+        .modern-input:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1), 0 4px 12px rgba(99,102,241,0.15);
+            background: rgba(255,255,255,0.05);
+        }
+        .modern-input:focus + .floating-label, .modern-input:not(:placeholder-shown) + .floating-label { transform: translateY(-0.5rem) scale(0.85); color: var(--primary); }
+        .modern-input:focus ~ .input-icon { color: var(--primary); }
+        .calculate-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white; border: none; padding: 1.25rem 2rem; border-radius: 12px;
+            font-size: 1.1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; overflow: hidden; text-transform: uppercase;
+            letter-spacing: 0.5px; box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+            grid-column: 1 / -1; margin-top: 1rem;
+        }
+        .calculate-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 32px rgba(99,102,241,0.4); }
+        .calculate-btn:active { transform: translateY(0) scale(1.00); }
+        .results-container {
+            background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border);
+            border-radius: 24px; overflow: hidden; animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .results-header { padding: 2rem 2.5rem 1rem; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.05) 100%); }
+        .results-title { font-size: 1.5rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.75rem; }
+        .results-body { padding: 0; }
+        .result-row { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 2.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s ease; }
+        .result-row:hover { background: rgba(255,255,255,0.03); }
+        .result-row.final-total { background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.05) 100%); border-bottom: none; font-size: 1.2rem; font-weight: 700; }
+        .result-row.final-total .result-label { color: var(--primary); }
+        .result-row.final-total .result-value { color: var(--primary); font-size: 1.4rem; }
+        .result-label { color: var(--text-secondary); font-weight: 500; }
+        .result-value { font-family: 'SF Mono', 'Monaco', 'Consolas', monospace; font-weight: 600; color: var(--text-primary); font-size: 1.1rem; }
+        @media (max-width: 768px) {
+            .header { padding: 2rem 1rem; }
+            .container { padding: 1rem; }
+            .glass-card { padding: 1.5rem; }
+            .scenario-grid, .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>ZeroPOS</h1>
+        <p>Advanced Tax Calculation Engine</p>
+    </header>
+
+    <main class="container">
+        <div class="glass-card">
+            <h2 class="card-title">
+                <i class="fas fa-calculator"></i>
+                Calculation Setup
+            </h2>
+            
+            <form method="post">
+                <div class="scenario-selector">
+                    <label style="color: var(--text-secondary); font-weight: 500; margin-bottom: 1rem; display: block;">
+                        Select Calculation Scenario
+                    </label>
+                    <div class="scenario-grid">
+                        <div class="scenario-option">
+                            <input type="radio" name="scenario" value="1" id="scenario-1" onchange="updateScenario()" {{ 'checked' if request.form.get('scenario', '1') == '1' }}>
+                            <label class="scenario-card" for="scenario-1">
+                                <div class="scenario-title"><span class="scenario-badge">01</span> Tax-Inclusive + Full Calculation</div>
+                                <div class="scenario-description">Includes item price, discounts, and edge fees with tax-inclusive pricing</div>
+                            </label>
+                        </div>
+                        <div class="scenario-option">
+                            <input type="radio" name="scenario" value="2" id="scenario-2" onchange="updateScenario()" {{ 'checked' if request.form.get('scenario') == '2' }}>
+                            <label class="scenario-card" for="scenario-2">
+                                <div class="scenario-title"><span class="scenario-badge">02</span> Tax-Exclusive + Full Calculation</div>
+                                <div class="scenario-description">Includes item price, discounts, and edge fees with tax-exclusive pricing</div>
+                            </label>
+                        </div>
+                        <div class="scenario-option">
+                            <input type="radio" name="scenario" value="3" id="scenario-3" onchange="updateScenario()" {{ 'checked' if request.form.get('scenario') == '3' }}>
+                            <label class="scenario-card" for="scenario-3">
+                                <div class="scenario-title"><span class="scenario-badge">03</span> Tax-Inclusive + Edge Fee Only</div>
+                                <div class="scenario-description">Tax-inclusive pricing with edge fees, no discounts applied</div>
+                            </label>
+                        </div>
+                        <div class="scenario-option">
+                            <input type="radio" name="scenario" value="4" id="scenario-4" onchange="updateScenario()" {{ 'checked' if request.form.get('scenario') == '4' }}>
+                            <label class="scenario-card" for="scenario-4">
+                                <div class="scenario-title"><span class="scenario-badge">04</span> Tax-Exclusive + Edge Fee Only</div>
+                                <div class="scenario-description">Tax-exclusive pricing with edge fees, no discounts applied</div>
+                            </label>
+                        </div>
+                        <div class="scenario-option">
+                            <input type="radio" name="scenario" value="5" id="scenario-5" onchange="updateScenario()" {{ 'checked' if request.form.get('scenario') == '5' }}>
+                            <label class="scenario-card" for="scenario-5">
+                                <div class="scenario-title"><span class="scenario-badge">05</span> Standard Tax-Exclusive</div>
+                                <div class="scenario-description">Traditional tax-exclusive calculation with discounts</div>
+                            </label>
+                        </div>
+                        <div class="scenario-option">
+                            <input type="radio" name="scenario" value="6" id="scenario-6" onchange="updateScenario()" {{ 'checked' if request.form.get('scenario') == '6' }}>
+                            <label class="scenario-card" for="scenario-6">
+                                <div class="scenario-title"><span class="scenario-badge">06</span> Standard Tax-Inclusive</div>
+                                <div class="scenario-description">Traditional tax-inclusive calculation with discounts</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <input type="number" step="0.01" name="price" value="{{ request.form.get('price', '16.00') }}" class="modern-input" placeholder=" " required>
+                            <label class="floating-label" id="price-label">Tax-Inclusive Price</label>
+                            <i class="fas fa-dollar-sign input-icon"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <input type="number" step="0.01" name="tax1_rate" value="{{ request.form.get('tax1_rate', '4.00') }}" class="modern-input" placeholder=" " required>
+                            <label class="floating-label">Tax Rate 1 (%)</label>
+                            <i class="fas fa-percentage input-icon"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <input type="number" step="0.01" name="tax2_rate" value="{{ request.form.get('tax2_rate', '4.50') }}" class="modern-input" placeholder=" " required>
+                            <label class="floating-label">Tax Rate 2 (%)</label>
+                            <i class="fas fa-percentage input-icon"></i>
+                        </div>
+                    </div>
+                    <div class="form-group" id="edge-fee-group">
+                        <div class="input-wrapper">
+                            <input type="number" step="0.01" name="edge_rate" value="{{ request.form.get('edge_rate', '10.00') }}" class="modern-input" placeholder=" ">
+                            <label class="floating-label">Edge Fee Rate (%)</label>
+                            <i class="fas fa-layer-group input-icon"></i>
+                        </div>
+                    </div>
+                    <div class="form-group" id="discount1-group">
+                        <div class="input-wrapper">
+                            <input type="number" step="0.01" name="d1_rate" value="{{ request.form.get('d1_rate', '10.00') }}" class="modern-input" placeholder=" ">
+                            <label class="floating-label">Discount 1 Rate (%)</label>
+                            <i class="fas fa-tag input-icon"></i>
+                        </div>
+                    </div>
+                    <div class="form-group" id="discount2-group">
+                        <div class="input-wrapper">
+                            <input type="number" step="0.01" name="d2_rate" value="{{ request.form.get('d2_rate', '5.00') }}" class="modern-input" placeholder=" ">
+                            <label class="floating-label">Discount 2 Rate (%)</label>
+                            <i class="fas fa-tags input-icon"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <input type="number" step="0.01" name="bag_price" value="{{ request.form.get('bag_price', '0') }}" class="modern-input" placeholder=" ">
+                            <label class="floating-label">Bag Price (per bag)</label>
+                            <i class="fas fa-shopping-bag input-icon"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <input type="number" step="1" name="bag_qty" value="{{ request.form.get('bag_qty', '0') }}" class="modern-input" placeholder=" ">
+                            <label class="floating-label">Bag Quantity</label>
+                            <i class="fas fa-hashtag input-icon"></i>
+                        </div>
+                    </div>
+                    <button type="submit" class="calculate-btn">
+                        <i class="fas fa-calculator" style="margin-right: 0.5rem;"></i>
+                        Calculate Total
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% if results %}
+        <div class="glass-card results-container" id="results-container">
+            <div class="results-header">
+                <h2 class="results-title">
+                    <i class="fas fa-chart-line"></i>
+                    Calculation Results
+                </h2>
+            </div>
+            <div class="results-body">
+                {% for key, value in results.items() %}
+                    <div class="result-row {{ 'final-total' if key == 'FINAL TOTAL' }}">
+                        <span class="result-label">{{ key }}</span>
+                        {% if value is number %}
+                            <span class="result-value">${{ "%.2f"|format(value) }}</span>
+                        {% else %}
+                            <span class="result-value" style="font-family: 'Inter', sans-serif; text-align: right;">{{ value }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </main>
+
+    <script>
+        function updateScenario() {
+            const scenario = document.querySelector('input[name="scenario"]:checked')?.value;
+            if (!scenario) return;
+            
+            const priceLabel = document.querySelector('#price-label');
+            const edgeFeeGroup = document.getElementById('edge-fee-group');
+            const discount1Group = document.getElementById('discount1-group');
+            const discount2Group = document.getElementById('discount2-group');
+
+            edgeFeeGroup.classList.remove('hidden');
+            discount1Group.classList.remove('hidden');
+            discount2Group.classList.remove('hidden');
+
+            priceLabel.textContent = ['1', '3', '6'].includes(scenario) ? 'Tax-Inclusive Price' : 'Tax-Exclusive Price';
+
+            if (['3', '4'].includes(scenario)) {
+                discount1Group.classList.add('hidden');
+                discount2Group.classList.add('hidden');
+            } else if (['5', '6'].includes(scenario)) {
+                edgeFeeGroup.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // This part always runs to set up the form correctly.
+            updateScenario(); 
+            
+            // This Jinja2 block will decide whether to print the scrolling script.
+            {% if results %}
+            // If there are results, this JavaScript will be included in the final HTML.
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            {% endif %}
+        });
+    </script>
+</body>
+</html>
