@@ -159,7 +159,7 @@ def index():
         }
         results = perform_calculation(scenario, form_data)
 
-    return render_template('templates/calculator.html', results=results)
+    return render_template('calculator.html', results=results)
 
 if __name__ == '__main__':
     app.run(debug=True)
