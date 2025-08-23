@@ -6,6 +6,8 @@
   <title>RCAPI TEST</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Alpine JS for dropdown interactivity -->
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <style>
     /* Styles for spinner and service card status */
     .spinner {
@@ -173,11 +175,11 @@
 <body>
   <div class="min-h-screen flex flex-col">
     <!-- Header -->
-    <header class="bg-white shadow-lg sticky top-0 z-10"> <!-- More pronounced shadow for header -->
+    <header class="bg-white shadow-lg sticky top-0 z-10">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
           <div class="flex items-center space-x-3">
-            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-2 rounded-lg shadow-xl"> <!-- Updated gradient for header icon -->
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-2 rounded-lg shadow-xl">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 012-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 002 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
               </svg>
@@ -242,54 +244,41 @@
         <!-- Domain Selection -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
           <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-            <div class="w-full md:w-2/3">
+            <div class="w-full md:flex-grow">
               <label for="domain-select" class="block text-sm font-medium text-gray-700 mb-1">Domain</label>
-              <div class="flex space-x-2">
+              <div class="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
                 <select id="domain-select" class="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2">
                   <option value="" disabled selected>Select a domain</option>
                 </select>
-                <div class="flex space-x-2">
-                  <button id="add-domain-btn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add
-                  </button>
-                  <button id="edit-domain-btn" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    Edit
-                  </button>
-                  <button id="delete-domain-btn" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md shadow-sm text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete
-                  </button>
+                <!-- Dropdown for Domain Management -->
+                <div x-data="{ open: false }" class="relative inline-block text-left">
+                  <div>
+                    <button @click="open = !open" type="button" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" id="menu-button" aria-expanded="true" aria-haspopup="true">
+                      Manage Domain
+                      <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div x-show="open" @click.away="open = false" x-transition class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1">
+                    <div class="py-1" role="none">
+                      <a href="#" id="add-domain-btn-dropdown" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" role="menuitem" tabindex="-1">Add New Domain</a>
+                      <a href="#" id="edit-domain-btn-dropdown" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" role="menuitem" tabindex="-1">Edit Selected</a>
+                      <a href="#" id="delete-domain-btn-dropdown" class="text-red-700 block px-4 py-2 text-sm hover:bg-red-50" role="menuitem" tabindex="-1">Delete Selected</a>
+                    </div>
+                  </div>
                 </div>
               </div>
               <p class="mt-1 text-xs text-gray-500">Each domain stores its own Bearer token for authentication</p>
             </div>
-            <div class="flex space-x-2">
-              <button id="continuous-transaction-btn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Start Continuous Sales
+            <div class="flex space-x-2 pt-4 md:pt-0 md:pl-4">
+              <button id="add-service-btn" class="flex-1 sm:flex-initial inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                <span>Add Service</span>
               </button>
-              <button id="add-service-btn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add Service
-              </button>
-              <button id="check-all-btn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Check All
+              <button id="continuous-transaction-btn" class="flex-1 sm:flex-initial inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>Start Sales</span>
               </button>
             </div>
           </div>
@@ -300,6 +289,13 @@
 
         <!-- Services Grid -->
         <div id="services-container" class="mb-8">
+          <div class="flex justify-between items-center mb-4">
+              <h2 class="text-2xl font-semibold text-gray-900">Services</h2>
+              <button id="check-all-btn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                Check All
+              </button>
+          </div>
           <div id="services-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
           <div id="empty-state" class="text-center py-16 bg-white rounded-lg shadow-sm hidden">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -319,15 +315,11 @@
             <h2 class="text-2xl font-semibold text-gray-900">API Suites</h2>
             <div class="flex space-x-2">
               <button id="add-api-suite-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                 Add API Suite
               </button>
               <button id="check-all-api-suites-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 Check All Suites
               </button>
             </div>
@@ -1053,10 +1045,6 @@
       // Update domain count
       document.getElementById('domain-count').textContent = `${domains.length} domain${domains.length !== 1 ? 's' : ''}`;
       
-      // Enable/disable edit and delete buttons based on whether a domain is selected
-      const hasSelectedDomain = !!getSelectedDomain();
-      document.getElementById('edit-domain-btn').disabled = !hasSelectedDomain;
-      document.getElementById('delete-domain-btn').disabled = !hasSelectedDomain;
     }
 
     function renderServices() {
@@ -2139,7 +2127,7 @@
         if (customer && customer.customerNumber) payload.customer = { customerNumber: customer.customerNumber };
         if (eventId) payload.event = { id: eventId };
 
-        return { payload, saleDataForRefund: { items: selectedItems, eventId, registerInfo, customerNumber: payload.customer?.customerNumber, totalAmount: payload.totalAmount } };
+        return { payload, saleDataForRefund: { items: selectedItems, eventId, registerInfo, customerNumber: payload.customer?.customerNumber } };
     }
     
     function createRefundPayloadJS(saleToRefund, payModeId, taxes) {
@@ -2262,7 +2250,9 @@
                 const selectedItems = [...availableItems].sort(() => 0.5 - Math.random()).slice(0, numItems);
                 logToModal(`Selected ${selectedItems.length} item(s): ${selectedItems.map(i => i.name).join(', ')}`);
                 
+                if (registers.length === 0) throw new Error("No registers found for this domain.");
                 const registerInfo = registers[Math.floor(Math.random() * registers.length)];
+                
                 const eventId = events.length > 0 ? events[Math.floor(Math.random() * events.length)].id : null;
 
                 const { payload, saleDataForRefund } = createSalePayloadJS(selectedItems, eventId, payModeId, registerInfo, taxes, customers);
@@ -2308,7 +2298,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Start Continuous Sales
+            <span>Start Sales</span>
         `;
         btn.classList.remove('bg-red-600', 'hover:bg-red-700');
         btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -2326,6 +2316,7 @@
       
       // Environment switching
       document.getElementById('beta-env').addEventListener('click', () => {
+        stopContinuousTransactions();
         state.currentEnv = 'beta';
         stopAllAutoChecks();
         saveState();
@@ -2335,6 +2326,7 @@
       });
       
       document.getElementById('uat-env').addEventListener('click', () => {
+        stopContinuousTransactions();
         state.currentEnv = 'uat';
         stopAllAutoChecks();
         saveState();
@@ -2344,6 +2336,7 @@
       });
       
       document.getElementById('live-env').addEventListener('click', () => {
+        stopContinuousTransactions();
         state.currentEnv = 'production';
         stopAllAutoChecks();
         saveState();
@@ -2354,6 +2347,7 @@
       
       // Domain selection
       document.getElementById('domain-select').addEventListener('change', (e) => {
+        stopContinuousTransactions();
         getCurrentEnvData().selectedDomainId = e.target.value;
         stopAllAutoChecks();
         saveState();
@@ -2361,19 +2355,10 @@
         setupAutoChecks();
       });
       
-      // Domain modal
-      document.getElementById('add-domain-btn').addEventListener('click', function() {
-        console.log('Add domain button clicked');
-        openDomainModal();
-      });
-      
-      document.getElementById('edit-domain-btn').addEventListener('click', function() {
-        console.log('Edit domain button clicked');
-        const domain = getSelectedDomain();
-        if (domain) openDomainModal(domain.id);
-      });
-      
-      document.getElementById('delete-domain-btn').addEventListener('click', deleteDomain);
+      // Domain modal dropdown buttons
+      document.getElementById('add-domain-btn-dropdown').addEventListener('click', (e) => { e.preventDefault(); openDomainModal(); });
+      document.getElementById('edit-domain-btn-dropdown').addEventListener('click', (e) => { e.preventDefault(); const domain = getSelectedDomain(); if (domain) openDomainModal(domain.id); });
+      document.getElementById('delete-domain-btn-dropdown').addEventListener('click', (e) => { e.preventDefault(); deleteDomain(); });
       
       document.getElementById('close-domain-modal').addEventListener('click', closeDomainModal);
       document.getElementById('cancel-domain-btn').addEventListener('click', closeDomainModal);
@@ -2715,7 +2700,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01" />
             </svg>
-            Stop Continuous Sales
+            <span>Stop Sales</span>
           `;
           btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
           btn.classList.add('bg-red-600', 'hover:bg-red-700');
