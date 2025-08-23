@@ -2026,7 +2026,7 @@
         }
 
         const config = {
-            items: { path: '/console/catalog/items?status=Active&pagination=true&pageSize=10000', process: (d) => d.data },
+            items: { path: '/console/catalog/items?Active&pagination=true&page=1&pageSize=30000', process: (d) => d.data },
             taxes: { path: '/console/catalog/taxes?', process: (d) => d },
             registers: { path: '/console/business/registers?status=Active&pagination=false', process: (d) => d },
             events: { path: '/console/entertainments/events?status=OPEN&pagination=false&sortBy=endDate.ASC', process: (d) => d },
@@ -2036,72 +2036,35 @@
         if (!config[dataType]) throw new Error(`Unknown data type: ${dataType}`);
 
         logToModal(`Fetching ${dataType} for domain "${domain.name}"...`);
-        
-        // ** PAGINATION LOGIC FOR ITEMS **
-        if (dataType === 'items') {
-            let allItems = [];
-            let currentPage = 1;
-            let hasMorePages = true;
+        const response = await fetch('/api/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: `${domain.url}${config[dataType].path}`,
+                method: 'GET',
+                headers: { Authorization: `Bearer ${domain.token}` }
+            })
+        });
 
-            while(hasMorePages) {
-                logToModal(`Fetching items page ${currentPage}...`);
-                const response = await fetch('/api/proxy', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        url: `${domain.url}${config.items.path}&page=${currentPage}`,
-                        method: 'GET',
-                        headers: { Authorization: `Bearer ${domain.token}` }
-                    })
-                });
-
-                if (!response.ok) throw new Error(`Failed to fetch items page ${currentPage}: ${response.status} ${await response.text()}`);
-                
-                const json = await response.json();
-                const pageData = config.items.process(json.data) || [];
-                
-                if (pageData.length > 0) {
-                    allItems = allItems.concat(pageData);
-                    currentPage++;
-                } else {
-                    hasMorePages = false;
-                }
-            }
-            logToModal(`Successfully fetched a total of ${allItems.length} items across ${currentPage - 1} pages.`, 'success');
-            cache.data = allItems;
-            cache.timestamp = Date.now();
-            return cache.data;
-
-        } else {
-             // ** STANDARD LOGIC FOR OTHER DATA TYPES **
-            const response = await fetch('/api/proxy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    url: `${domain.url}${config[dataType].path}`,
-                    method: 'GET',
-                    headers: { Authorization: `Bearer ${domain.token}` }
-                })
-            });
-
-            if (!response.ok) throw new Error(`Failed to fetch ${dataType}: ${response.status} ${await response.text()}`);
-            
-            const json = await response.json();
-            const processedData = config[dataType].process(json.data);
-            
-            if (!processedData || (Array.isArray(processedData) && processedData.length === 0)) {
-                logToModal(`No valid ${dataType} found. This might cause issues.`, 'warn');
-                cache.data = [];
-            } else {
-                logToModal(`Successfully fetched ${processedData.length} ${dataType}.`, 'success');
-                cache.data = processedData;
-            }
-            
-            cache.timestamp = Date.now();
-            return cache.data;
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to fetch ${dataType}: ${response.status} ${errorText}`);
         }
-    }
 
+        const json = await response.json();
+        const processedData = config[dataType].process(json.data);
+        
+        if (!processedData || (Array.isArray(processedData) && processedData.length === 0)) {
+            logToModal(`No valid ${dataType} found. This might cause issues.`, 'warn');
+            cache.data = []; // Store empty array to prevent refetching immediately
+        } else {
+            logToModal(`Successfully fetched ${processedData.length} ${dataType}.`, 'success');
+            cache.data = processedData;
+        }
+        
+        cache.timestamp = Date.now();
+        return cache.data;
+    }
 
     function createSalePayloadJS(selectedItems, eventId, payModeId, registerInfo, taxes, customers) {
         const PAY_MODES = { 1: "Cash", 2: "Credit", 3: "Debit", 4: "Check", 5: "Gift" };
