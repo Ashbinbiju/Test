@@ -1,17 +1,12 @@
 {
-  "builds": [
+  "rewrites": [
     {
-      "src": "app.py",
-      "use": "@vercel/python",
-      "config": { "maxLambdaSize": "15mb", "runtime": "python3.9" }
+      "source": "/api/(.*)",
+      "destination": "/api/proxy"
     },
     {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
+      "source": "/batch/ping",
+      "destination": "/api/health"
     }
-  ],
-  "routes": [
-    { "src": "/(?!api/).*", "dest": "app.py" },
-    { "src": "/api/(.*)", "dest": "/api/$1" }
   ]
 }
