@@ -2026,7 +2026,7 @@
         }
 
         const config = {
-            items: { path: '/console/catalog/items?Active&pagination=true&page=1&pageSize=30000', process: (d) => d.data },
+            items: { path: '/console/catalog/items?status=Active&limit=10000', process: (d) => d.data },
             taxes: { path: '/console/catalog/taxes?', process: (d) => d },
             registers: { path: '/console/business/registers?status=Active&pagination=false', process: (d) => d },
             events: { path: '/console/entertainments/events?status=OPEN&pagination=false&sortBy=endDate.ASC', process: (d) => d },
