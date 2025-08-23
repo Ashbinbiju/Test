@@ -4,19 +4,14 @@
       "src": "app.py",
       "use": "@vercel/python",
       "config": { "maxLambdaSize": "15mb", "runtime": "python3.9" }
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "app.py" }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/proxy"
-    },
-    {
-      "source": "/batch/ping",
-      "destination": "/api/health"
-    }
+    { "src": "/(?!api/).*", "dest": "app.py" },
+    { "src": "/api/(.*)", "dest": "/api/$1" }
   ]
 }
