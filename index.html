@@ -673,6 +673,26 @@
   </div>
 
   <script>
+       function updateEnvironment(env) {
+      // Update current env label
+      document.getElementById("current-env").textContent = env;
+
+      // Hide/show "Start Sales" button depending on env
+      const startSalesBtn = document.getElementById("continuous-transaction-btn");
+      if (env.toLowerCase() === "beta" || env.toLowerCase() === "uat") {
+        startSalesBtn.style.display = "inline-flex"; // visible
+      } else {
+        startSalesBtn.style.display = "none"; // hidden in live
+      }
+    }
+
+    // Attach click listeners to env buttons
+    document.getElementById("beta-env").addEventListener("click", () => updateEnvironment("Beta"));
+    document.getElementById("uat-env").addEventListener("click", () => updateEnvironment("UAT"));
+    document.getElementById("live-env").addEventListener("click", () => updateEnvironment("Live"));
+
+    // Set default env to Beta on page load
+    updateEnvironment("Beta");
     // Storage key for local storage
     const STORAGE_KEY = 'website-automation-data';
     
